@@ -1,0 +1,363 @@
+Gold Coins
+1,787,500
+GC
+Sweeps Coins
+1,213.93
+SC
+Get Coins
+SeeLamba
+Poker
+Casino
+Promo
+Results
+Bad Beat
+JACKPOT
+690
+.
+0
+1
+2
+3
+4
+5
+6
+7
+7
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+9
+ 
+S
+C
+Ring Games
+Tournaments
+My Stats
+Filter
+Game Type
+Any
+Blinds
+Any
+Result
+Any
+Start Date
+End Date
+Show
+Total Hands: 2538
+Total Result:
+712.58 SC
+Table Name
+Start Time
+Duration
+Game Type
+Blinds
+Total Hands
+Result
+Grand Canyon #1
+Jan 29, 10:09 AM
+4m 33s
+Hold'em
+0.5 SC / 1 SC
+2
+-2 SC
+Sahara #1
+Jan 29, 07:55 AM
+2h 45m 41s
+Hold'em
+1 SC / 2 SC
+192
+-377.24 SC
+Sahara #2
+Jan 29, 06:45 AM
+3h 55m 22s
+Hold'em
+1 SC / 2 SC
+279
++219.4 SC
+Tropicana #1
+Jan 29, 06:45 AM
+1h 40m 39s
+Hold'em
+0.5 SC / 1 SC
+131
++27.95 SC
+Vegas Valley #3
+Jan 29, 06:39 AM
+24m 41s
+Hold'em
+0.25 SC / 0.5 SC
+21
++48.77 SC
+Vegas Valley #1
+Jan 29, 06:37 AM
+25m 51s
+Hold'em
+0.25 SC / 0.5 SC
+23
+-10.5 SC
+Vegas Valley #1
+Jan 29, 06:22 AM
+15m 9s
+Hold'em
+0.25 SC / 0.5 SC
+9
+-3.25 SC
+Vegas Valley #7
+Jan 28, 05:37 PM
+1h 52m 55s
+Hold'em
+0.25 SC / 0.5 SC
+118
++5.55 SC
+Vegas Valley #1
+Jan 28, 05:37 PM
+1h 53m 7s
+Hold'em
+0.25 SC / 0.5 SC
+118
+-92.53 SC
+Sahara #2
+Jan 28, 05:37 PM
+1h 53m 7s
+Hold'em
+1 SC / 2 SC
+118
+-227.15 SC
+Vegas Valley #2
+Jan 28, 09:34 AM
+1h 26m 23s
+Hold'em
+0.25 SC / 0.5 SC
+98
+-46.65 SC
+Vegas Valley #1
+Jan 28, 09:29 AM
+1h 31m 17s
+Hold'em
+0.25 SC / 0.5 SC
+98
+-35.71 SC
+Sahara #2
+Jan 28, 09:29 AM
+1h 54m 4s
+Hold'em
+1 SC / 2 SC
+140
++459.13 SC
+Salt Lake #2
+Jan 28, 05:49 AM
+6m 20s
+Omaha
+0.1 SC / 0.2 SC
+3
+-4.2 SC
+Hustler Casino Live 24/7 Meet-Up Game #9
+Jan 28, 05:42 AM
+13m 44s
+Hold'em
+0.05 SC / 0.1 SC
+6
+-3.69 SC
+Hustler Casino Live 24/7 Meet-Up Game #6
+Jan 28, 05:42 AM
+14m 1s
+Hold'em
+0.05 SC / 0.1 SC
+9
++0.94 SC
+Vegas Valley #1
+Jan 28, 05:21 AM
+2h 14m 54s
+Hold'em
+0.25 SC / 0.5 SC
+126
++122.84 SC
+Grand Canyon #1
+Jan 27, 12:51 PM
+1h 1m 39s
+Hold'em
+0.5 SC / 1 SC
+66
+-47.76 SC
+Vegas Valley #2
+Jan 27, 12:50 PM
+50m 2s
+Hold'em
+0.25 SC / 0.5 SC
+44
++3.48 SC
+Vegas Valley #3
+Jan 27, 12:50 PM
+50m 6s
+Hold'em
+0.25 SC / 0.5 SC
+47
++40.7 SC
+Sahara #2
+Jan 27, 12:45 PM
+1h 24m 52s
+Hold'em
+1 SC / 2 SC
+95
++57.57 SC
+Vegas Valley #2
+Jan 27, 10:35 AM
+4m 50s
+Hold'em
+0.25 SC / 0.5 SC
+1
+-0.5 SC
+Vegas Valley #2
+Jan 27, 09:02 AM
+4m 45s
+Hold'em
+0.25 SC / 0.5 SC
+2
+-0.5 SC
+Sahara #2
+Jan 27, 08:51 AM
+1h 25m 32s
+Hold'em
+1 SC / 2 SC
+117
++469.04 SC
+Sahara #2
+Jan 27, 07:31 AM
+9m 58s
+Hold'em
+1 SC / 2 SC
+10
++133.93 SC
+Sahara #1
+Jan 27, 06:31 AM
+2h 20m 1s
+Hold'em
+1 SC / 2 SC
+132
+-475.1 SC
+Vegas Valley #1
+Jan 27, 05:54 AM
+1h 10m 55s
+Hold'em
+0.25 SC / 0.5 SC
+62
++9.01 SC
+Hustler Casino Live 24/7 Meet-Up Game. #1
+Jan 27, 05:50 AM
+44m 53s
+Hold'em
+0.1 SC / 0.2 SC
+46
++6.26 SC
+Sahara #1
+Jan 24, 06:17 AM
+22m 36s
+Hold'em
+1 SC / 2 SC
+32
++70.64 SC
+Vegas Valley #1
+Jan 24, 06:09 AM
+50m 42s
+Hold'em
+0.25 SC / 0.5 SC
+48
+-38.75 SC
+Sahara #1
+Jan 23, 12:06 PM
+27m 27s
+Hold'em
+1 SC / 2 SC
+27
++48.63 SC
+Vegas Valley #1
+Jan 23, 11:30 AM
+37m 43s
+Hold'em
+0.25 SC / 0.5 SC
+32
++31.46 SC
+Sahara #1
+Jan 23, 11:20 AM
+10m 23s
+Hold'em
+1 SC / 2 SC
+13
++8.35 SC
+Sahara #1
+Jan 23, 07:12 AM
+6m 31s
+Hold'em
+1 SC / 2 SC
+11
++1 SC
+Vegas Valley #1
+Jan 23, 06:45 AM
+26m 33s
+Hold'em
+0.25 SC / 0.5 SC
+18
++15.11 SC
+Salt Lake #1
+Jan 23, 06:40 AM
+18m 55s
+Omaha
+0.1 SC / 0.2 SC
+14
+-3.75 SC
+Hustler Casino Live 24/7 Meet-Up Game. #1
+Jan 23, 06:36 AM
+34m 21s
+Hold'em
+0.1 SC / 0.2 SC
+27
+-15.32 SC
+Vegas Valley #1
+Jan 23, 06:08 AM
+10m 13s
+Hold'em
+0.25 SC / 0.5 SC
+8
+-3.25 SC
+Sahara #1
+Jan 21, 11:24 AM
+1h 59m 42s
+Hold'em
+1 SC / 2 SC
+113
++439.05 SC
+Tropicana #1
+Jan 21, 11:03 AM
+39m 45s
+Hold'em
+0.5 SC / 1 SC
+54
+-136.62 SC
+Sahara #3
+Jan 18, 05:57 PM
+8m 22s
+Hold'em
+1 SC / 2 SC
+4
+-3.54 SC
+Vegas Valley #1
+Jan 18, 05:34 PM
+22m 17s
+Hold'em
+0.25 SC / 0.5 SC
+24
++21.78 SC
+Select session to view game history
+06:50 PM
+1063
+167
+0
+0
+MINI GAMES
