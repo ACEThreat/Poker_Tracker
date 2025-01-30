@@ -3,6 +3,7 @@ from .tabs.sessions_tab import SessionsTab
 from .tabs.stats_tab import StatsTab
 from .tabs.settings_tab import SettingsTab
 from .tabs.import_tab import ImportTab
+from ..database.database import Database
 
 class MainWindow(ctk.CTk):
     def __init__(self):
@@ -40,6 +41,9 @@ class MainWindow(ctk.CTk):
         
         # Show default tab
         self.show_tab("Sessions")
+        
+        # Bind the window close event
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
     
     def create_tab_buttons(self):
         tab_frame = ctk.CTkFrame(self)
@@ -74,6 +78,12 @@ class MainWindow(ctk.CTk):
         # Show selected tab
         self.tabs[tab_name].grid(row=0, column=0, sticky="nsew")
         self.current_tab = tab_name
+
+    def on_closing(self):
+        """Handle program exit"""
+        db = Database()
+        db.update_total_hours()
+        self.destroy()
 
 def main():
     app = MainWindow()

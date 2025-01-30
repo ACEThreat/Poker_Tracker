@@ -170,8 +170,8 @@ class ImportTab(ctk.CTkFrame):
                 
                 if success:
                     self.status_text.insert("1.0", f"Database import successful: {len(sessions)} sessions imported\n")
-                    # Update sessions tab
-                    self.master.master.sessions_tab.fetch_sessions()
+                    # Update sessions tab through the main window's tabs dictionary
+                    self.master.master.tabs["Sessions"].fetch_sessions()
                 else:
                     self.status_text.insert("1.0", f"Database import failed: {message}\n")
                 

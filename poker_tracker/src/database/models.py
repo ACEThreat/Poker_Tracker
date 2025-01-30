@@ -15,4 +15,5 @@ class Session(Base):
     stakes = Column(String)
     hands_played = Column(Integer)
     result = Column(Float)
+    total_hours = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)

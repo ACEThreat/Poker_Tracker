@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
-from .models import Base
+from .models import Base, Session
 import os
 import logging
+from datetime import datetime, timedelta
 
 class Database:
     @staticmethod
@@ -44,3 +45,43 @@ class Database:
     
     def get_session(self):
         return self.Session()
+
+    def update_total_hours(self):
+        """Update total_hours for all sessions"""
+        session = self.get_session()
+        try:
+            # Get all sessions ordered by start time
+            sessions = session.query(Session).order_by(Session.start_time).all()
+            current_total_hours = 0
+            current_end = None
+            
+            for s in sessions:
+                # Parse duration to hours
+                duration_parts = s.duration.split()
+                duration_hours = 0
+                for part in duration_parts:
+                    if part.endswith('h'):
+                        duration_hours += float(part[:-1])
+                    elif part.endswith('m'):
+                        duration_hours += float(part[:-1]) / 60
+                    elif part.endswith('s'):
+                        duration_hours += float(part[:-1]) / 3600
+                
+                start = s.start_time
+                end = start + timedelta(hours=duration_hours)
+                
+                if current_end is None:
+                    current_total_hours += duration_hours
+                else:
+                    if start > current_end:
+                        current_total_hours += duration_hours
+                    else:
+                        if end > current_end:
+                            current_total_hours += (end - current_end).total_seconds() / 3600
+                
+                current_end = max(end, current_end) if current_end else end
+                s.total_hours = current_total_hours
+            
+            session.commit()
+        finally:
+            session.close()

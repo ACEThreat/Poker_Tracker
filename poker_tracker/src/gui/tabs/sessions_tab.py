@@ -10,6 +10,9 @@ class SessionsTab(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
         
+        # Add x_axis_var initialization
+        self.x_axis_var = ctk.StringVar(value="sessions")
+        
         # Configure main frame grid
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)  # Give table more weight
@@ -84,6 +87,27 @@ class SessionsTab(ctk.CTkFrame):
         graph_frame = ctk.CTkFrame(graph_window)
         graph_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
+        # Add control frame for x-axis selection
+        control_frame = ctk.CTkFrame(graph_frame)
+        control_frame.pack(fill="x", padx=5, pady=5)
+        
+        # Add radio buttons for x-axis selection (now using the class variable)
+        ctk.CTkRadioButton(
+            control_frame,
+            text="Sessions",
+            variable=self.x_axis_var,
+            value="sessions",
+            command=lambda: self.update_graph(ax, canvas, self.session_data_list)
+        ).pack(side="left", padx=10)
+        
+        ctk.CTkRadioButton(
+            control_frame,
+            text="Hours",
+            variable=self.x_axis_var,
+            value="hours",
+            command=lambda: self.update_graph(ax, canvas, self.session_data_list)
+        ).pack(side="left", padx=10)
+        
         # Create matplotlib figure
         fig, ax = plt.subplots(figsize=(10, 6))
         canvas = FigureCanvasTkAgg(fig, master=graph_frame)
@@ -97,17 +121,26 @@ class SessionsTab(ctk.CTkFrame):
         """Update the graph with new session data"""
         ax.clear()
         if sessions_data:
-            sessions = range(len(sessions_data))
-            cumulative_profit = np.cumsum([s.get('profit', 0) for s in sessions_data])
-            ax.plot(sessions, cumulative_profit, '-b', label='Cumulative Profit')
+            # Sort by start_time to ensure correct order
+            sorted_data = sorted(sessions_data, key=lambda x: x.get('start_time', 0))
+            cumulative_profit = np.cumsum([s.get('profit', 0) for s in sorted_data])
+            
+            if self.x_axis_var.get() == "sessions":
+                x_values = range(len(sorted_data))
+                ax.set_xlabel('Sessions')
+            else:  # hours
+                # Use the stored total_hours directly from the database
+                x_values = [s.get('total_hours', 0) for s in sorted_data]
+                ax.set_xlabel('Hours')
+            
+            ax.plot(x_values, cumulative_profit, '-b', label='Cumulative Profit')
             ax.grid(True)
-            ax.set_xlabel('Sessions')
             ax.set_ylabel('Profit ($)')
             ax.set_title('Poker Session Results')
         else:
             # Display empty graph with grid
             ax.grid(True)
-            ax.set_xlabel('Sessions')
+            ax.set_xlabel('Sessions/Hours')
             ax.set_ylabel('Profit ($)')
             ax.set_title('Poker Session Results (No Data)')
         canvas.draw()
@@ -117,20 +150,20 @@ class SessionsTab(ctk.CTkFrame):
         db = Database()
         session = db.get_session()
         try:
-            # Get all sessions ordered by start time
-            sessions = session.query(Session).order_by(Session.start_time.desc()).all()
+            sessions = session.query(Session).order_by(Session.start_time).all()
             
             if not sessions:
                 return
             
-            # Store sessions data for graph updates
-            self.session_data_list = [{'profit': float(s.result)} for s in sessions]
+            # Update session data list with start_time and total_hours
+            self.session_data_list = [{
+                'profit': float(s.result),
+                'total_hours': s.total_hours,
+                'start_time': s.start_time
+            } for s in sessions]
             
             # Update table with aggregated data
             self.update_table(sessions)
-            
-            print(f"Fetched {len(sessions)} sessions from database")
-            print(f"Total profit: ${sum(s.result for s in sessions):.2f}")
             
         except Exception as e:
             print(f"Error fetching sessions: {str(e)}")
@@ -138,6 +171,31 @@ class SessionsTab(ctk.CTkFrame):
             traceback.print_exc()
         finally:
             session.close()
+
+    def refresh_data(self):
+        """Refresh data and update total hours"""
+        db = Database()
+        db.update_total_hours()
+        self.fetch_sessions()
+
+    def parse_duration(self, duration_str):
+        """Convert duration string like '2h 45m 41s' to hours"""
+        hours = 0
+        minutes = 0
+        seconds = 0
+        
+        # Split on spaces and process each part
+        parts = duration_str.split()
+        for part in parts:
+            if part.endswith('h'):
+                hours = float(part[:-1])
+            elif part.endswith('m'):
+                minutes = float(part[:-1])
+            elif part.endswith('s'):
+                seconds = float(part[:-1])
+        
+        # Convert everything to hours
+        return hours + (minutes / 60) + (seconds / 3600)
 
     def sort_table(self, column):
         """Sort table data based on clicked column"""

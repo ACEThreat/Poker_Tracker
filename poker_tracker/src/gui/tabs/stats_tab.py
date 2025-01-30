@@ -83,19 +83,26 @@ class StatsTab(ctk.CTkFrame):
         )
         self.profit_per_hand.grid(row=0, column=1, padx=20, pady=20)
         
+        self.total_time = ctk.CTkLabel(
+            self.stats_frame, 
+            text="Total Time: -",
+            font=("Arial", 16, "bold")
+        )
+        self.total_time.grid(row=1, column=0, padx=20, pady=20)
+        
         self.sessions_won = ctk.CTkLabel(
             self.stats_frame, 
             text="Sessions Won: -",
             font=("Arial", 16, "bold")
         )
-        self.sessions_won.grid(row=1, column=0, padx=20, pady=20)
+        self.sessions_won.grid(row=2, column=0, padx=20, pady=20)
         
         self.win_percentage = ctk.CTkLabel(
             self.stats_frame, 
             text="Win Rate: -%",
             font=("Arial", 16, "bold")
         )
-        self.win_percentage.grid(row=1, column=1, padx=20, pady=20)
+        self.win_percentage.grid(row=2, column=1, padx=20, pady=20)
         
     def load_stakes_options(self):
         db = Database()
@@ -143,6 +150,13 @@ class StatsTab(ctk.CTkFrame):
         # Convert to hours
         return (minutes + seconds/60) / 60
 
+    def format_duration(self, hours):
+        """Convert hours to a readable format"""
+        total_minutes = int(hours * 60)
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        return f"{hours}h {minutes}m"
+
     def update_stats(self, *args):
         db = Database()
         session = db.get_session()
@@ -166,20 +180,44 @@ class StatsTab(ctk.CTkFrame):
             if sessions:
                 # Calculate stats
                 total_profit = sum(s.result for s in sessions)
-                # Parse duration strings and convert to hours
-                total_hours = sum(self.parse_duration(s.duration) for s in sessions)
+                
+                # Sort sessions by start time and handle overlaps
+                sorted_sessions = sorted(sessions, key=lambda s: s.start_time)
+                total_hours = 0
+                current_end = None
+                
+                for s in sorted_sessions:
+                    start = s.start_time
+                    duration_hours = self.parse_duration(s.duration)
+                    end = start + timedelta(hours=duration_hours)
+                    
+                    if current_end is None:
+                        total_hours += duration_hours
+                    else:
+                        if start > current_end:
+                            # No overlap, add full duration
+                            total_hours += duration_hours
+                        else:
+                            # Overlap exists, only add non-overlapping time
+                            if end > current_end:
+                                total_hours += (end - current_end).total_seconds() / 3600
+                    
+                    current_end = max(end, current_end) if current_end else end
+                
                 total_hands = sum(s.hands_played for s in sessions)
                 winning_sessions = sum(1 for s in sessions if s.result > 0)
                 
                 # Update labels
                 self.profit_per_hour.configure(text=f"$/hour: ${total_profit/total_hours:.2f}" if total_hours else "$/hour: $0.00")
                 self.profit_per_hand.configure(text=f"$/hand: ${total_profit/total_hands:.2f}" if total_hands else "$/hand: $0.00")
+                self.total_time.configure(text=f"Total Time: {self.format_duration(total_hours)}")
                 self.sessions_won.configure(text=f"Sessions Won: {winning_sessions}/{len(sessions)}")
                 self.win_percentage.configure(text=f"Win Rate: {(winning_sessions/len(sessions))*100:.1f}%")
             else:
                 # Reset labels if no sessions found
                 self.profit_per_hour.configure(text="$/hour: -")
                 self.profit_per_hand.configure(text="$/hand: -")
+                self.total_time.configure(text="Total Time: -")
                 self.sessions_won.configure(text="Sessions Won: -")
                 self.win_percentage.configure(text="Win Rate: -%")
                 
