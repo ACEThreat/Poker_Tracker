@@ -80,9 +80,14 @@ class MainWindow(ctk.CTk):
         self.current_tab = tab_name
 
     def on_closing(self):
-        """Handle program exit"""
-        db = Database()
-        db.update_total_hours()
+        """Handle window closing event"""
+        # Clean up any resources
+        for tab_name, tab in self.tabs.items():
+            if hasattr(tab, 'cleanup'):
+                tab.cleanup()
+        
+        # Destroy the window and quit the application
+        self.quit()
         self.destroy()
 
 def main():

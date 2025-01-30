@@ -180,4 +180,9 @@ class ImportTab(ctk.CTkFrame):
         
         self.scraper.cleanup()
         self.save_close_button.grid_remove()
-        self.import_button.configure(state="normal") 
+        self.import_button.configure(state="normal")
+    
+    def cleanup(self):
+        """Clean up resources when closing"""
+        if hasattr(self, 'scraper'):
+            self.scraper.cleanup() 
