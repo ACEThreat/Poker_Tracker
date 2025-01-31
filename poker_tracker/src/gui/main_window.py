@@ -1,8 +1,13 @@
 import customtkinter as ctk
-from .tabs.sessions_tab import SessionsTab
-from .tabs.stats_tab import StatsTab
-from .tabs.settings_tab import SettingsTab
-from .tabs.import_tab import ImportTab
+from pathlib import Path
+import os
+
+# Update these imports to use absolute paths
+from poker_tracker.src.gui.tabs.bankroll_overview_tab import BankrollOverviewTab
+from poker_tracker.src.gui.tabs.sessions_tab import SessionsTab
+from poker_tracker.src.gui.tabs.stats_tab import StatsTab
+from poker_tracker.src.gui.tabs.settings_tab import SettingsTab
+from poker_tracker.src.gui.tabs.import_tab import ImportTab
 from ..database.database import Database
 
 class MainWindow(ctk.CTk):
@@ -40,7 +45,7 @@ class MainWindow(ctk.CTk):
         self.setup_tabs()
         
         # Show default tab
-        self.show_tab("Sessions")
+        self.show_tab("Bankroll Overview")
         
         # Bind the window close event
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -49,7 +54,7 @@ class MainWindow(ctk.CTk):
         tab_frame = ctk.CTkFrame(self)
         tab_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 0))
         
-        tabs = ["Sessions", "Stats", "Settings", "Import"]
+        tabs = ["Bankroll Overview", "Sessions", "Stats", "Settings", "Import"]
         for i, tab_name in enumerate(tabs):
             btn = ctk.CTkButton(
                 tab_frame,
@@ -61,6 +66,7 @@ class MainWindow(ctk.CTk):
             
     def setup_tabs(self):
         # Create tab instances
+        self.tabs["Bankroll Overview"] = BankrollOverviewTab(self.content_frame)
         self.tabs["Sessions"] = SessionsTab(self.content_frame)
         self.tabs["Stats"] = StatsTab(self.content_frame)
         self.tabs["Settings"] = SettingsTab(self.content_frame)

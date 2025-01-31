@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from datetime import datetime, timedelta
+from tkcalendar import DateEntry
 from ...database.database import Database
 from ...database.models import Session
 
@@ -24,7 +25,7 @@ class StatsTab(ctk.CTkFrame):
     def create_filters_frame(self):
         filters_frame = ctk.CTkFrame(self)
         filters_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-        filters_frame.grid_columnconfigure((0,1,2), weight=1)
+        filters_frame.grid_columnconfigure((0,1,2,3), weight=1)  # Added column for calendar
         
         # Date range filter
         date_frame = ctk.CTkFrame(filters_frame)
@@ -32,18 +33,31 @@ class StatsTab(ctk.CTkFrame):
         
         ctk.CTkLabel(date_frame, text="Date Range:").pack(side="left", padx=5)
         self.date_var = ctk.StringVar(value="All Time")
-        date_options = ["Last Week", "Last Month", "Last 3 Months", "Last Year", "All Time"]
+        date_options = ["Custom", "Last Week", "Last Month", "Last 3 Months", "Last Year", "All Time"]
         date_dropdown = ctk.CTkOptionMenu(
             date_frame, 
             values=date_options,
             variable=self.date_var,
-            command=self.update_stats
+            command=self.on_date_range_change
         )
         date_dropdown.pack(side="left", padx=5)
         
-        # Stakes filter
+        # Calendar date range
+        self.calendar_frame = ctk.CTkFrame(filters_frame)
+        self.calendar_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.calendar_frame.grid_remove()  # Hidden by default
+        
+        ctk.CTkLabel(self.calendar_frame, text="From:").pack(side="left", padx=2)
+        self.start_date = DateEntry(self.calendar_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.start_date.pack(side="left", padx=2)
+        
+        ctk.CTkLabel(self.calendar_frame, text="To:").pack(side="left", padx=2)
+        self.end_date = DateEntry(self.calendar_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.end_date.pack(side="left", padx=2)
+        
+        # Move stakes filter to next column
         stakes_frame = ctk.CTkFrame(filters_frame)
-        stakes_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        stakes_frame.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
         
         ctk.CTkLabel(stakes_frame, text="Stakes:").pack(side="left", padx=5)
         self.stakes_listbox = ctk.CTkOptionMenu(
@@ -61,7 +75,7 @@ class StatsTab(ctk.CTkFrame):
             fg_color="#287C37",  # Dark green
             hover_color="#1D5827"  # Darker green for hover
         )
-        refresh_btn.grid(row=0, column=2, padx=5, pady=5)
+        refresh_btn.grid(row=0, column=3, padx=5, pady=5)
         
     def create_stats_frame(self):
         self.stats_frame = ctk.CTkFrame(self)
@@ -120,19 +134,30 @@ class StatsTab(ctk.CTkFrame):
         finally:
             session.close()
             
+    def on_date_range_change(self, value):
+        if value == "Custom":
+            self.calendar_frame.grid()
+        else:
+            self.calendar_frame.grid_remove()
+        self.update_stats()
+
     def get_date_filter(self):
         date_range = self.date_var.get()
         now = datetime.now()
         
-        if date_range == "Last Week":
-            return now - timedelta(days=7)
+        if date_range == "Custom":
+            start_date = datetime.combine(self.start_date.get_date(), datetime.min.time())
+            end_date = datetime.combine(self.end_date.get_date(), datetime.max.time())
+            return start_date, end_date
+        elif date_range == "Last Week":
+            return now - timedelta(days=7), now
         elif date_range == "Last Month":
-            return now - timedelta(days=30)
+            return now - timedelta(days=30), now
         elif date_range == "Last 3 Months":
-            return now - timedelta(days=90)
+            return now - timedelta(days=90), now
         elif date_range == "Last Year":
-            return now - timedelta(days=365)
-        return None  # All Time
+            return now - timedelta(days=365), now
+        return None, None  # All Time
             
     def parse_duration(self, duration_str):
         """Convert duration string like '4m 33s' to hours"""
@@ -161,13 +186,12 @@ class StatsTab(ctk.CTkFrame):
         db = Database()
         session = db.get_session()
         try:
-            # Build query based on filters
             query = session.query(Session)
             
             # Apply date filter
-            date_filter = self.get_date_filter()
-            if date_filter:
-                query = query.filter(Session.start_time >= date_filter)
+            start_date, end_date = self.get_date_filter()
+            if start_date and end_date:
+                query = query.filter(Session.start_time >= start_date, Session.start_time <= end_date)
                 
             # Apply stakes filter
             stakes_filter = self.stakes_listbox.get()
