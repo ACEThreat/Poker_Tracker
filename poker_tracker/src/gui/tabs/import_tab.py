@@ -15,6 +15,8 @@ class ImportTab(ctk.CTkFrame):
         self.parser = SessionParser()
         self.importer = SessionImporter()
         
+        self._is_running = True
+        
         # Create main content frame
         self.create_content_frame()
     
@@ -147,42 +149,73 @@ class ImportTab(ctk.CTkFrame):
     
     def continue_after_login(self):
         """Continue after manual login"""
-        self.continue_button.grid_remove()
-        
-        if self.scraper.get_page_content():
-            self.status_text.insert("1.0", "Content extracted successfully...\n")
-            self.save_close_button.grid(row=4, column=0, padx=5, pady=5)
-        else:
-            self.status_text.insert("1.0", "Failed to extract content\n")
-            self.import_button.configure(state="normal")
+        try:
+            self.continue_button.grid_remove()
+            
+            if self.scraper.get_page_content():
+                # Check if application is still running before updating GUI
+                if hasattr(self, '_is_running') and not self._is_running:
+                    return
+                self.status_text.insert("1.0", "Content extracted successfully...\n")
+                self.save_close_button.grid(row=4, column=0, padx=5, pady=5)
+            else:
+                if hasattr(self, '_is_running') and not self._is_running:
+                    return
+                self.status_text.insert("1.0", "Failed to extract content\n")
+        except Exception as e:
+            print(f"Error in continue_after_login: {str(e)}")
+        finally:
+            # Only try to update GUI if application is still running
+            try:
+                if hasattr(self, '_is_running') and self._is_running:
+                    if hasattr(self, 'import_button'):
+                        self.import_button.configure(state="normal")
+            except Exception:
+                pass
     
     def save_and_close(self):
         """Save content, parse sessions, import to database, and cleanup"""
-        content_file = self.scraper.save_content()
-        if content_file:
-            self.status_text.insert("1.0", f"Content saved to: {content_file}\n")
+        try:
+            if not hasattr(self, '_is_running') or not self._is_running:
+                return
+            
+            content_file = self.scraper.save_content()
+            if content_file:
+                self.status_text.insert("1.0", f"Content saved to: {content_file}\n")
+                try:
+                    parsed_file = self.parser.parse_file(content_file)
+                    self.status_text.insert("1.0", f"Sessions parsed and saved to: {parsed_file}\n")
+                    
+                    sessions = self.parser.get_sessions(parsed_file)
+                    success, message = self.importer.import_sessions(sessions)
+                    
+                    if success:
+                        self.status_text.insert("1.0", f"Database import successful: {len(sessions)} sessions imported\n")
+                        if self._is_running and hasattr(self.master, 'master') and hasattr(self.master.master, 'tabs'):
+                            self.master.master.tabs["Sessions"].fetch_sessions()
+                    else:
+                        self.status_text.insert("1.0", f"Database import failed: {message}\n")
+                    
+                except Exception as e:
+                    if self._is_running:
+                        self.status_text.insert("1.0", f"Error during processing: {str(e)}\n")
+        except Exception as e:
+            print(f"Error in save_and_close: {str(e)}")
+        finally:
             try:
-                parsed_file = self.parser.parse_file(content_file)
-                self.status_text.insert("1.0", f"Sessions parsed and saved to: {parsed_file}\n")
-                
-                sessions = self.parser.get_sessions(parsed_file)
-                success, message = self.importer.import_sessions(sessions)
-                
-                if success:
-                    self.status_text.insert("1.0", f"Database import successful: {len(sessions)} sessions imported\n")
-                    # Update sessions tab through the main window's tabs dictionary
-                    self.master.master.tabs["Sessions"].fetch_sessions()
-                else:
-                    self.status_text.insert("1.0", f"Database import failed: {message}\n")
-                
-            except Exception as e:
-                self.status_text.insert("1.0", f"Error during processing: {str(e)}\n")
-        
-        self.scraper.cleanup()
-        self.save_close_button.grid_remove()
-        self.import_button.configure(state="normal")
+                if self._is_running:
+                    if hasattr(self, 'save_close_button'):
+                        self.save_close_button.grid_remove()
+                    if hasattr(self, 'import_button'):
+                        self.import_button.configure(state="normal")
+            except Exception:
+                pass
     
     def cleanup(self):
-        """Clean up resources when closing"""
+        """Cleanup resources before destruction"""
+        self._is_running = False
         if hasattr(self, 'scraper'):
-            self.scraper.cleanup() 
+            try:
+                self.scraper.cleanup()
+            except Exception:
+                pass 

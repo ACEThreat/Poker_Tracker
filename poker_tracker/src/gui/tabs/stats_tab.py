@@ -1,8 +1,56 @@
 import customtkinter as ctk
 from datetime import datetime, timedelta
-from tkcalendar import DateEntry
 from ...database.database import Database
 from ...database.models import Session
+
+class DatePicker(ctk.CTkFrame):
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        
+        current_date = datetime.now()
+        
+        # Create frame for year, month, day
+        self.year_var = ctk.StringVar(value=str(current_date.year))
+        self.month_var = ctk.StringVar(value=str(current_date.month))
+        self.day_var = ctk.StringVar(value=str(current_date.day))
+        
+        # Year dropdown
+        years = [str(year) for year in range(current_date.year-5, current_date.year+1)]
+        year_dropdown = ctk.CTkOptionMenu(
+            self,
+            variable=self.year_var,
+            values=years,
+            width=70
+        )
+        year_dropdown.pack(side="left", padx=2)
+        
+        # Month dropdown
+        months = [str(m) for m in range(1, 13)]
+        month_dropdown = ctk.CTkOptionMenu(
+            self,
+            variable=self.month_var,
+            values=months,
+            width=50
+        )
+        month_dropdown.pack(side="left", padx=2)
+        
+        # Day dropdown
+        days = [str(d) for d in range(1, 32)]
+        day_dropdown = ctk.CTkOptionMenu(
+            self,
+            variable=self.day_var,
+            values=days,
+            width=50
+        )
+        day_dropdown.pack(side="left", padx=2)
+    
+    def get_date(self):
+        """Return datetime object for selected date"""
+        return datetime(
+            int(self.year_var.get()),
+            int(self.month_var.get()),
+            int(self.day_var.get())
+        )
 
 class StatsTab(ctk.CTkFrame):
     def __init__(self, parent):
@@ -48,11 +96,11 @@ class StatsTab(ctk.CTkFrame):
         self.calendar_frame.grid_remove()  # Hidden by default
         
         ctk.CTkLabel(self.calendar_frame, text="From:").pack(side="left", padx=2)
-        self.start_date = DateEntry(self.calendar_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.start_date = DatePicker(self.calendar_frame)
         self.start_date.pack(side="left", padx=2)
         
         ctk.CTkLabel(self.calendar_frame, text="To:").pack(side="left", padx=2)
-        self.end_date = DateEntry(self.calendar_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.end_date = DatePicker(self.calendar_frame)
         self.end_date.pack(side="left", padx=2)
         
         # Move stakes filter to next column
@@ -82,41 +130,76 @@ class StatsTab(ctk.CTkFrame):
         self.stats_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
         self.stats_frame.grid_columnconfigure((0,1), weight=1)
         
-        # Create labels for stats (will be updated later)
-        self.profit_per_hour = ctk.CTkLabel(
-            self.stats_frame, 
-            text="$/hour: -",
-            font=("Arial", 16, "bold")
+        # Profit metrics frame
+        profit_frame = ctk.CTkFrame(self.stats_frame)
+        profit_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+        profit_frame.grid_columnconfigure((0,1), weight=1)
+        
+        self.total_profit = ctk.CTkLabel(
+            profit_frame, 
+            text="Total Won: -",
+            font=("Arial", 18, "bold")
         )
-        self.profit_per_hour.grid(row=0, column=0, padx=20, pady=20)
+        self.total_profit.grid(row=0, column=0, padx=20, pady=10)
+        
+        self.profit_per_hour = ctk.CTkLabel(
+            profit_frame, 
+            text="$/hour: -",
+            font=("Arial", 18, "bold")
+        )
+        self.profit_per_hour.grid(row=0, column=1, padx=20, pady=10)
         
         self.profit_per_hand = ctk.CTkLabel(
-            self.stats_frame, 
+            profit_frame, 
             text="$/hand: -",
-            font=("Arial", 16, "bold")
+            font=("Arial", 18, "bold")
         )
-        self.profit_per_hand.grid(row=0, column=1, padx=20, pady=20)
+        self.profit_per_hand.grid(row=1, column=0, padx=20, pady=10)
         
-        self.total_time = ctk.CTkLabel(
-            self.stats_frame, 
-            text="Total Time: -",
-            font=("Arial", 16, "bold")
-        )
-        self.total_time.grid(row=1, column=0, padx=20, pady=20)
+        # Session metrics frame
+        session_frame = ctk.CTkFrame(self.stats_frame)
+        session_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+        session_frame.grid_columnconfigure((0,1), weight=1)
         
         self.sessions_won = ctk.CTkLabel(
-            self.stats_frame, 
+            session_frame, 
             text="Sessions Won: -",
-            font=("Arial", 16, "bold")
+            font=("Arial", 16)
         )
-        self.sessions_won.grid(row=2, column=0, padx=20, pady=20)
+        self.sessions_won.grid(row=0, column=0, padx=20, pady=10)
         
         self.win_percentage = ctk.CTkLabel(
-            self.stats_frame, 
+            session_frame, 
             text="Win Rate: -%",
-            font=("Arial", 16, "bold")
+            font=("Arial", 16)
         )
-        self.win_percentage.grid(row=2, column=1, padx=20, pady=20)
+        self.win_percentage.grid(row=0, column=1, padx=20, pady=10)
+        
+        self.total_time = ctk.CTkLabel(
+            session_frame, 
+            text="Total Time: -",
+            font=("Arial", 16)
+        )
+        self.total_time.grid(row=1, column=0, padx=20, pady=10)
+        
+        # Best/Worst session frame
+        extremes_frame = ctk.CTkFrame(self.stats_frame)
+        extremes_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+        extremes_frame.grid_columnconfigure((0,1), weight=1)
+        
+        self.biggest_win = ctk.CTkLabel(
+            extremes_frame, 
+            text="Biggest Win: -",
+            font=("Arial", 16)
+        )
+        self.biggest_win.grid(row=0, column=0, padx=20, pady=10)
+        
+        self.biggest_loss = ctk.CTkLabel(
+            extremes_frame, 
+            text="Biggest Loss: -",
+            font=("Arial", 16)
+        )
+        self.biggest_loss.grid(row=0, column=1, padx=20, pady=10)
         
     def load_stakes_options(self):
         db = Database()
@@ -205,6 +288,10 @@ class StatsTab(ctk.CTkFrame):
                 # Calculate stats
                 total_profit = sum(s.result for s in sessions)
                 
+                # Find biggest win and loss sessions
+                biggest_win_session = max(sessions, key=lambda s: s.result)
+                biggest_loss_session = min(sessions, key=lambda s: s.result)
+                
                 # Sort sessions by start time and handle overlaps
                 sorted_sessions = sorted(sessions, key=lambda s: s.start_time)
                 total_hours = 0
@@ -231,19 +318,53 @@ class StatsTab(ctk.CTkFrame):
                 total_hands = sum(s.hands_played for s in sessions)
                 winning_sessions = sum(1 for s in sessions if s.result > 0)
                 
+                # Helper function for color coding
+                def color_amount(amount):
+                    return "#287C37" if amount > 0 else "#FF3B30"
+                
+                # Format currency with color
+                def format_currency(amount):
+                    color = color_amount(amount)
+                    return f"${abs(amount):,.2f}", color
+                
                 # Update labels
-                self.profit_per_hour.configure(text=f"$/hour: ${total_profit/total_hours:.2f}" if total_hours else "$/hour: $0.00")
-                self.profit_per_hand.configure(text=f"$/hand: ${total_profit/total_hands:.2f}" if total_hands else "$/hand: $0.00")
+                amount, color = format_currency(total_profit)
+                self.total_profit.configure(text=f"Total Won: {amount}", text_color=color)
+                
+                hourly_rate = total_profit/total_hours if total_hours else 0
+                amount, color = format_currency(hourly_rate)
+                self.profit_per_hour.configure(text=f"$/hour: {amount}", text_color=color)
+                
+                per_hand = total_profit/total_hands if total_hands else 0
+                amount, color = format_currency(per_hand)
+                self.profit_per_hand.configure(text=f"$/hand: {amount}", text_color=color)
+                
                 self.total_time.configure(text=f"Total Time: {self.format_duration(total_hours)}")
                 self.sessions_won.configure(text=f"Sessions Won: {winning_sessions}/{len(sessions)}")
                 self.win_percentage.configure(text=f"Win Rate: {(winning_sessions/len(sessions))*100:.1f}%")
+                
+                # Update biggest win/loss
+                win_amount, win_color = format_currency(biggest_win_session.result)
+                self.biggest_win.configure(
+                    text=f"Biggest Win: {win_amount}\n{biggest_win_session.stakes} ({biggest_win_session.start_time.strftime('%Y-%m-%d')})",
+                    text_color=win_color
+                )
+                
+                loss_amount, loss_color = format_currency(biggest_loss_session.result)
+                self.biggest_loss.configure(
+                    text=f"Biggest Loss: {loss_amount}\n{biggest_loss_session.stakes} ({biggest_loss_session.start_time.strftime('%Y-%m-%d')})",
+                    text_color=loss_color
+                )
             else:
                 # Reset labels if no sessions found
+                self.total_profit.configure(text="Total Won: -")
                 self.profit_per_hour.configure(text="$/hour: -")
                 self.profit_per_hand.configure(text="$/hand: -")
                 self.total_time.configure(text="Total Time: -")
                 self.sessions_won.configure(text="Sessions Won: -")
                 self.win_percentage.configure(text="Win Rate: -%")
+                self.biggest_win.configure(text="Biggest Win: -")
+                self.biggest_loss.configure(text="Biggest Loss: -")
                 
         finally:
             session.close()
