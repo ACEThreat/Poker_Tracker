@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from ...database.database import Database
 from ...database.models import Session
 from tkinter import Toplevel
+from matplotlib.collections import LineCollection
 
 class BankrollOverviewTab(ctk.CTkFrame):
     def __init__(self, parent):
@@ -23,7 +24,7 @@ class BankrollOverviewTab(ctk.CTkFrame):
         
         # Initialize session data list
         self.session_data_list = []
-        self.x_axis_var = ctk.StringVar(value="sessions")
+        self.x_axis_var = ctk.StringVar(value="dollars")
         
         # Add sort state initialization
         self.current_sort_column = 0
@@ -228,7 +229,7 @@ class BankrollOverviewTab(ctk.CTkFrame):
 
     def show_graph_window(self):
         # Create new window
-        graph_window = Toplevel(self)
+        graph_window = ctk.CTkToplevel(self)
         graph_window.title("Session Results Graph")
         graph_window.geometry("800x600")
         
@@ -236,26 +237,56 @@ class BankrollOverviewTab(ctk.CTkFrame):
         graph_frame = ctk.CTkFrame(graph_window)
         graph_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Add control frame for x-axis selection
+        # Add control frame for axis selection
         control_frame = ctk.CTkFrame(graph_frame)
         control_frame.pack(fill="x", padx=5, pady=5)
         
-        # Add radio buttons for x-axis selection (now using the class variable)
+        # Create frames for Y and X axis controls
+        y_axis_frame = ctk.CTkFrame(control_frame)
+        y_axis_frame.pack(side="left", padx=10)
+        
+        x_axis_frame = ctk.CTkFrame(control_frame)
+        x_axis_frame.pack(side="left", padx=10)
+        
+        # Y-axis controls
+        ctk.CTkLabel(y_axis_frame, text="Y-axis:").pack(side="left", padx=5)
+        self.y_axis_var = ctk.StringVar(value="dollars")
+        
         ctk.CTkRadioButton(
-            control_frame,
+            y_axis_frame,
+            text="Dollars ($)",
+            variable=self.y_axis_var,
+            value="dollars",
+            command=lambda: self.update_graph(ax, canvas, self.session_data_list)
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkRadioButton(
+            y_axis_frame,
+            text="Big Blinds",
+            variable=self.y_axis_var,
+            value="bb",
+            command=lambda: self.update_graph(ax, canvas, self.session_data_list)
+        ).pack(side="left", padx=5)
+        
+        # X-axis controls
+        ctk.CTkLabel(x_axis_frame, text="X-axis:").pack(side="left", padx=5)
+        self.x_axis_var = ctk.StringVar(value="sessions")
+        
+        ctk.CTkRadioButton(
+            x_axis_frame,
             text="Sessions",
             variable=self.x_axis_var,
             value="sessions",
             command=lambda: self.update_graph(ax, canvas, self.session_data_list)
-        ).pack(side="left", padx=10)
+        ).pack(side="left", padx=5)
         
         ctk.CTkRadioButton(
-            control_frame,
+            x_axis_frame,
             text="Hours",
             variable=self.x_axis_var,
             value="hours",
             command=lambda: self.update_graph(ax, canvas, self.session_data_list)
-        ).pack(side="left", padx=10)
+        ).pack(side="left", padx=5)
         
         # Create matplotlib figure
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -263,7 +294,7 @@ class BankrollOverviewTab(ctk.CTkFrame):
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
         
-        # Update graph with data - pass the session_data_list
+        # Initial graph update
         self.update_graph(ax, canvas, self.session_data_list)
 
     def update_graph(self, ax, canvas, sessions_data=None):
@@ -272,25 +303,58 @@ class BankrollOverviewTab(ctk.CTkFrame):
         if sessions_data:
             # Sort by start_time to ensure correct order
             sorted_data = sorted(sessions_data, key=lambda x: x.get('start_time', 0))
-            cumulative_profit = np.cumsum([s.get('profit', 0) for s in sorted_data])
             
-            if self.x_axis_var.get() == "sessions":
+            # Calculate cumulative results and hours
+            if self.y_axis_var.get() == "dollars":
+                results = [s.get('profit', 0) for s in sorted_data]
+                y_values = np.cumsum(results)
+                ax.set_ylabel('Profit ($)')
+            else:  # bb
+                results = [s.get('bb_result', 0) for s in sorted_data]
+                y_values = np.cumsum(results)
+                ax.set_ylabel('Profit (BB)')
+            
+            # Calculate cumulative hours if needed
+            if self.x_axis_var.get() == "hours":
+                hours = []
+                cumulative_hours = 0
+                for s in sorted_data:
+                    duration_str = s.get('duration', '0h 0m 0s')
+                    duration_hours = self.parse_duration(duration_str)
+                    cumulative_hours += duration_hours
+                    hours.append(cumulative_hours)
+                x_values = hours
+                ax.set_xlabel('Hours')
+            else:  # sessions
                 x_values = range(len(sorted_data))
                 ax.set_xlabel('Sessions')
-            else:  # hours
-                # Use the stored total_hours directly from the database
-                x_values = [s.get('total_hours', 0) for s in sorted_data]
-                ax.set_xlabel('Hours')
             
-            ax.plot(x_values, cumulative_profit, '-b', label='Cumulative Profit')
+            # Create the line plot
+            line = ax.plot(x_values, y_values, label='Cumulative Profit')[0]
+            
+            # Color the line segments based on y-values
+            points = np.array([x_values, y_values]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            
+            # Create a LineCollection with different colors
+            from matplotlib.collections import LineCollection
+            lc = LineCollection(segments, colors=['#287C37' if y >= 0 else '#FF3B30' 
+                                                for y in y_values[1:]])
+            ax.add_collection(lc)
+            line.remove()  # Remove the original line
+            
+            # Fill between line and x-axis with colors
+            ax.fill_between(x_values, y_values, 0, 
+                           where=(y_values >= 0), color='#287C37', alpha=0.1)
+            ax.fill_between(x_values, y_values, 0, 
+                           where=(y_values < 0), color='#FF3B30', alpha=0.1)
+            
             ax.grid(True)
-            ax.set_ylabel('Profit ($)')
             ax.set_title('Poker Session Results')
         else:
-            # Display empty graph with grid
             ax.grid(True)
-            ax.set_xlabel('Sessions/Hours')
-            ax.set_ylabel('Profit ($)')
+            ax.set_xlabel('Sessions')
+            ax.set_ylabel('Profit')
             ax.set_title('Poker Session Results (No Data)')
         canvas.draw()
 
@@ -304,10 +368,11 @@ class BankrollOverviewTab(ctk.CTkFrame):
             if not sessions:
                 return
             
-            # Update session data list with start_time and total_hours
+            # Update session data list with start_time, duration, and total_hours
             self.session_data_list = [{
                 'profit': float(s.result),
-                'total_hours': s.total_hours,
+                'bb_result': float(s.result) / float(s.stakes.split('/')[1].strip().split()[0]),
+                'duration': s.duration,  # Add duration
                 'start_time': s.start_time
             } for s in sessions]
             
@@ -336,7 +401,6 @@ class BankrollOverviewTab(ctk.CTkFrame):
         minutes = 0
         seconds = 0
         
-        # Split on spaces and process each part
         parts = duration_str.split()
         for part in parts:
             if part.endswith('h'):
@@ -346,7 +410,6 @@ class BankrollOverviewTab(ctk.CTkFrame):
             elif part.endswith('s'):
                 seconds = float(part[:-1])
         
-        # Convert everything to hours
         return hours + (minutes / 60) + (seconds / 3600)
 
     def sort_table(self, column):
