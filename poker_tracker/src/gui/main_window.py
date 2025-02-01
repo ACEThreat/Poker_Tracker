@@ -9,10 +9,14 @@ from poker_tracker.src.gui.tabs.stats_tab import StatsTab
 from poker_tracker.src.gui.tabs.settings_tab import SettingsTab
 from poker_tracker.src.gui.tabs.import_tab import ImportTab
 from ..database.database import Database
+from ..config import Config
 
 class MainWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
+        
+        # Ensure all required directories exist
+        Config.ensure_directories()
         
         # Set window size for 1080p (1920x1080)
         screen_width = self.winfo_screenwidth()

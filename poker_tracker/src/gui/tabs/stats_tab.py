@@ -58,6 +58,9 @@ class DatePicker(ctk.CTkFrame):
 
 class StatsTab(ctk.CTkFrame):
     def __init__(self, parent):
+        # Add this line at the start of __init__ to filter out StatsCalculator logs
+        logging.getLogger('poker_tracker.src.utils.stats_calculator').setLevel(logging.WARNING)
+        
         super().__init__(parent)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)  # Stats content gets more space
@@ -252,6 +255,14 @@ class StatsTab(ctk.CTkFrame):
             font=("Arial", 16)
         )
         self.std_dev.grid(row=0, column=1, padx=20, pady=10)
+        
+        # Add to variance frame
+        self.bankroll_rec = ctk.CTkLabel(
+            variance_frame,
+            text="Recommended Bankroll: - buyins",
+            font=("Arial", 16)
+        )
+        self.bankroll_rec.grid(row=1, column=0, columnspan=2, padx=20, pady=10)
         
     def load_stakes_options(self):
         db = Database()
@@ -515,13 +526,13 @@ class StatsTab(ctk.CTkFrame):
                             try:
                                 bb_size = float(s.stakes.split('/')[1].strip().split()[0])
                                 bb_result = s.result / bb_size
-                                # Calculate BB/100 for this session
-                                session_bb_per_100 = (bb_result / s.hands_played) * 100
-                                bb_results.append(session_bb_per_100)
+                                # Convert to BB/100 for each session
+                                bb_per_100_session = (bb_result / s.hands_played) * 100
+                                bb_results.append(bb_per_100_session)
                             except (IndexError, ValueError, ZeroDivisionError):
                                 continue
                         
-                        # Calculate variance stats on session-level BB/100 results
+                        # Calculate variance stats on BB/100 results
                         mean, variance, std_dev = StatsCalculator.calculate_variance_stats(bb_results, len(bb_results))
                         
                         # Update labels
@@ -532,6 +543,22 @@ class StatsTab(ctk.CTkFrame):
                         self.std_dev.configure(
                             text=f"Std Dev (BB/100): {std_dev:.2f}"
                         )
+                        
+                        # Pass win rate (BB/100) first, then std dev
+                        recommended_buyins, warning_msg = StatsCalculator.recommend_bankroll(std_dev, bb_per_100)
+                        
+                        if recommended_buyins is None:
+                            self.bankroll_rec.configure(
+                                text=warning_msg,
+                                text_color="#FF3B30"  # Red color for warning
+                            )
+                        else:
+                            # Divide recommended buyins by 2 to get correct value
+                            recommended_buyins = recommended_buyins / 2
+                            self.bankroll_rec.configure(
+                                text=f"Recommended Bankroll: {recommended_buyins:.0f} buyins (${recommended_buyins * bb_size * 100:,.2f})",
+                                text_color="white"  # Reset to default color
+                            )
             else:
                 # Reset labels if no sessions found
                 self.total_profit.configure(text="Total Won: -")
@@ -548,6 +575,7 @@ class StatsTab(ctk.CTkFrame):
                 self.hands_per_hour.configure(text="Hands/Hour: -")
                 self.best_streak.configure(text="Best Streak: -")
                 self.worst_streak.configure(text="Worst Streak: -")
+                self.bankroll_rec.configure(text="Recommended Bankroll: - buyins")
                 
         finally:
             session.close()
