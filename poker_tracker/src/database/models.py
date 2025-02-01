@@ -17,3 +17,5 @@ class Session(Base):
     result = Column(Float)
     total_hours = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
+    bb_result = Column(Float)  # Result in big blinds
+    variance = Column(Float)   # Variance for this session

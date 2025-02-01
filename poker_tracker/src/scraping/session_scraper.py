@@ -71,12 +71,7 @@ class SessionScraper:
             def parse_and_format_content(content):
                 # Parse the content using regex
                 table_entries = re.finditer(
-                    r"(Jan \d{1,2}, \d{1,2}:\d{2} [APM]{2})\n"  # Date and time
-                    r"((?:\d+h )?\d+m \d+s)\n"  # Duration
-                    r"(Hold'em|Omaha)\n"  # Game format
-                    r"([\d.]+ SC / [\d.]+ SC)\n"  # Stakes
-                    r"(\d+)\n"  # Hands played
-                    r"([+-][\d.]+ SC)",  # Result
+                    SESSION_PATTERN,
                     content
                 )
                 
@@ -215,3 +210,12 @@ class SessionScraper:
         if self.driver:
             self.driver.quit()
             self.driver = None 
+
+SESSION_PATTERN = (
+    r"(Jan \d{1,2}, \d{1,2}:\d{2} [APM]{2})\n"  # Date and time
+    r"((?:\d+h )?\d+m \d+s)\n"  # Duration
+    r"(Hold'em|Omaha)\n"  # Game format
+    r"([\d.]+ SC / [\d.]+ SC)\n"  # Stakes
+    r"(\d+)\n"  # Hands played
+    r"([+-][\d.]+ SC)"  # Result
+) 

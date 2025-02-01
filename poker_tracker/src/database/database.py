@@ -4,6 +4,13 @@ from .models import Base, Session
 import os
 import logging
 from datetime import datetime, timedelta
+from sqlalchemy.pool import QueuePool
+from .migrations import add_variance_columns
+from ..config import Config
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Database:
     @staticmethod
@@ -15,34 +22,19 @@ class Database:
         return app_dir
 
     def __init__(self):
-        # Setup logging
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
+        """Initialize database connection and run migrations"""
+        self.db_path = os.path.join(Config.APP_DIR, Config.DB_NAME)
+        self.engine = create_engine(f'sqlite:///{self.db_path}')
         
-        # Get app directory and database path
-        app_dir = self.get_app_directory()
-        db_path = os.path.join(app_dir, 'database.db')
+        # Create tables if they don't exist
+        Base.metadata.create_all(self.engine)
         
-        # Create database engine
-        try:
-            self.engine = create_engine(f'sqlite:///{db_path}', echo=False)
-            
-            # Check if tables exist using inspect
-            inspector = inspect(self.engine)
-            if not inspector.has_table('sessions'):
-                self.logger.info(f"Creating database tables at: {db_path}")
-                Base.metadata.create_all(self.engine)
-                self.logger.info("Database tables created successfully")
-            else:
-                self.logger.info(f"Using existing database at: {db_path}")
-                
-        except Exception as e:
-            self.logger.error(f"Error with database: {e}")
-            raise
-            
-        # Create session factory
+        # Run migrations
+        add_variance_columns()
+        
         self.Session = sessionmaker(bind=self.engine)
-    
+        logger.info(f"Using existing database at: {self.db_path}")
+
     def get_session(self):
         return self.Session()
 

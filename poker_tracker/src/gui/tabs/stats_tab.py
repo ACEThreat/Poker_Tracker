@@ -2,6 +2,10 @@ import customtkinter as ctk
 from datetime import datetime, timedelta
 from ...database.database import Database
 from ...database.models import Session
+from ...utils.stats_calculator import StatsCalculator
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DatePicker(ctk.CTkFrame):
     def __init__(self, parent, **kwargs):
@@ -182,6 +186,20 @@ class StatsTab(ctk.CTkFrame):
         )
         self.total_time.grid(row=1, column=0, padx=20, pady=10)
         
+        self.total_hands = ctk.CTkLabel(
+            session_frame,
+            text="Total Hands: -",
+            font=("Arial", 16)
+        )
+        self.total_hands.grid(row=1, column=1, padx=20, pady=10)
+        
+        self.hands_per_hour = ctk.CTkLabel(
+            session_frame,
+            text="Hands/Hour: -",
+            font=("Arial", 16)
+        )
+        self.hands_per_hour.grid(row=2, column=0, padx=20, pady=10)
+        
         # Best/Worst session frame
         extremes_frame = ctk.CTkFrame(self.stats_frame)
         extremes_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
@@ -200,6 +218,40 @@ class StatsTab(ctk.CTkFrame):
             font=("Arial", 16)
         )
         self.biggest_loss.grid(row=0, column=1, padx=20, pady=10)
+        
+        # Add upswing/downswing labels
+        self.best_streak = ctk.CTkLabel(
+            extremes_frame, 
+            text="Best Streak: -",
+            font=("Arial", 16)
+        )
+        self.best_streak.grid(row=1, column=0, padx=20, pady=10)
+        
+        self.worst_streak = ctk.CTkLabel(
+            extremes_frame, 
+            text="Worst Streak: -",
+            font=("Arial", 16)
+        )
+        self.worst_streak.grid(row=1, column=1, padx=20, pady=10)
+        
+        # Variance frame
+        variance_frame = ctk.CTkFrame(self.stats_frame)
+        variance_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+        variance_frame.grid_columnconfigure((0,1), weight=1)
+        
+        self.bb_per_100 = ctk.CTkLabel(
+            variance_frame,
+            text="BB/100: -",
+            font=("Arial", 16)
+        )
+        self.bb_per_100.grid(row=0, column=0, padx=20, pady=10)
+        
+        self.std_dev = ctk.CTkLabel(
+            variance_frame,
+            text="Std Dev (BB): -",
+            font=("Arial", 16)
+        )
+        self.std_dev.grid(row=0, column=1, padx=20, pady=10)
         
     def load_stakes_options(self):
         db = Database()
@@ -265,6 +317,63 @@ class StatsTab(ctk.CTkFrame):
         minutes = total_minutes % 60
         return f"{hours}h {minutes}m"
 
+    def calculate_streaks(self, sessions):
+        """Calculate best and worst streaks using cumulative results, including BB data"""
+        if not sessions:
+            return (0, 0, 0, 0), (0, 0, 0, 0)  # (profit, BB, sessions, hands) for best and worst
+
+        # Sort sessions by date
+        sorted_sessions = sorted(sessions, key=lambda s: s.start_time)
+        
+        # For tracking streak details
+        best_streak = {'profit': 0, 'bb': 0, 'sessions': 0, 'hands': 0, 'start_idx': 0}
+        worst_streak = {'profit': 0, 'bb': 0, 'sessions': 0, 'hands': 0, 'start_idx': 0}
+        
+        for i, session in enumerate(sorted_sessions):
+            # Check for new best/worst streak from any previous point to here
+            for j in range(i + 1):
+                profit_in_range = 0
+                bb_in_range = 0
+                hands_in_range = 0
+                
+                # Calculate total profit and BB for this range
+                for s in sorted_sessions[j:i+1]:
+                    profit_in_range += s.result
+                    hands_in_range += s.hands_played
+                    
+                    try:
+                        # Extract BB size from stakes (e.g., "1 SC / 2 SC" -> 2)
+                        bb_size = float(s.stakes.split('/')[1].strip().split()[0])
+                        # Convert result to BB
+                        bb_result = s.result / bb_size
+                        bb_in_range += bb_result
+                    except (IndexError, ValueError) as e:
+                        logger.warning(f"Could not process stakes {s.stakes}: {e}")
+                        continue
+                
+                if profit_in_range > best_streak['profit']:
+                    best_streak = {
+                        'profit': profit_in_range,
+                        'bb': bb_in_range,
+                        'sessions': i - j + 1,
+                        'hands': hands_in_range,
+                        'start_idx': j
+                    }
+                
+                if profit_in_range < worst_streak['profit']:
+                    worst_streak = {
+                        'profit': profit_in_range,
+                        'bb': bb_in_range,
+                        'sessions': i - j + 1,
+                        'hands': hands_in_range,
+                        'start_idx': j
+                    }
+        
+        return (
+            (best_streak['profit'], best_streak['bb'], best_streak['sessions'], best_streak['hands']),
+            (worst_streak['profit'], worst_streak['bb'], worst_streak['sessions'], worst_streak['hands'])
+        )
+
     def update_stats(self, *args):
         db = Database()
         session = db.get_session()
@@ -287,6 +396,7 @@ class StatsTab(ctk.CTkFrame):
             if sessions:
                 # Calculate stats
                 total_profit = sum(s.result for s in sessions)
+                total_hands = sum(s.hands_played for s in sessions)
                 
                 # Find biggest win and loss sessions
                 biggest_win_session = max(sessions, key=lambda s: s.result)
@@ -315,7 +425,6 @@ class StatsTab(ctk.CTkFrame):
                     
                     current_end = max(end, current_end) if current_end else end
                 
-                total_hands = sum(s.hands_played for s in sessions)
                 winning_sessions = sum(1 for s in sessions if s.result > 0)
                 
                 # Helper function for color coding
@@ -342,6 +451,11 @@ class StatsTab(ctk.CTkFrame):
                 self.total_time.configure(text=f"Total Time: {self.format_duration(total_hours)}")
                 self.sessions_won.configure(text=f"Sessions Won: {winning_sessions}/{len(sessions)}")
                 self.win_percentage.configure(text=f"Win Rate: {(winning_sessions/len(sessions))*100:.1f}%")
+                self.total_hands.configure(text=f"Total Hands: {total_hands:,}")
+                
+                # Calculate hands per hour
+                hands_per_hour = int(total_hands / total_hours) if total_hours else 0
+                self.hands_per_hour.configure(text=f"Hands/Hour: {hands_per_hour:,}")
                 
                 # Update biggest win/loss
                 win_amount, win_color = format_currency(biggest_win_session.result)
@@ -355,6 +469,69 @@ class StatsTab(ctk.CTkFrame):
                     text=f"Biggest Loss: {loss_amount}\n{biggest_loss_session.stakes} ({biggest_loss_session.start_time.strftime('%Y-%m-%d')})",
                     text_color=loss_color
                 )
+                
+                # Calculate and display streaks
+                best_streak, worst_streak = self.calculate_streaks(sessions)
+                
+                # Format streak information
+                best_amount, best_color = format_currency(best_streak[0])
+                self.best_streak.configure(
+                    text=f"Best Streak: {best_amount} ({best_streak[1]:,.1f} BB)\n({best_streak[2]} sessions, {best_streak[3]:,} hands)",
+                    text_color=best_color
+                )
+                
+                worst_amount, worst_color = format_currency(worst_streak[0])
+                self.worst_streak.configure(
+                    text=f"Worst Streak: {worst_amount} ({worst_streak[1]:,.1f} BB)\n({worst_streak[2]} sessions, {worst_streak[3]:,} hands)",
+                    text_color=worst_color
+                )
+                
+                # Get all results in BB for Hold'em sessions only
+                holdem_sessions = [s for s in sessions if s.game_format == "Hold'em"]
+                if holdem_sessions:
+                    total_bb_won = 0
+                    total_hands = 0
+                    
+                    for s in holdem_sessions:
+                        try:
+                            # Extract BB size from stakes (e.g., "1 SC / 2 SC" -> 2)
+                            bb_size = float(s.stakes.split('/')[1].strip().split()[0])
+                            # Convert result to BB (if result is $100 and BB is $2, that's 50 BB)
+                            bb_result = s.result / bb_size
+                            # Add to running totals
+                            total_bb_won += bb_result
+                            total_hands += s.hands_played
+                        except (IndexError, ValueError) as e:
+                            logger.warning(f"Could not process stakes {s.stakes}: {e}")
+                            continue
+                    
+                    if total_hands > 0:
+                        # Calculate BB/100: (total BB won / total hands) * 100
+                        bb_per_100 = (total_bb_won / total_hands) * 100
+                        
+                        # For standard deviation, use session-level results
+                        bb_results = []
+                        for s in holdem_sessions:
+                            try:
+                                bb_size = float(s.stakes.split('/')[1].strip().split()[0])
+                                bb_result = s.result / bb_size
+                                # Calculate BB/100 for this session
+                                session_bb_per_100 = (bb_result / s.hands_played) * 100
+                                bb_results.append(session_bb_per_100)
+                            except (IndexError, ValueError, ZeroDivisionError):
+                                continue
+                        
+                        # Calculate variance stats on session-level BB/100 results
+                        mean, variance, std_dev = StatsCalculator.calculate_variance_stats(bb_results, len(bb_results))
+                        
+                        # Update labels
+                        self.bb_per_100.configure(
+                            text=f"BB/100: {bb_per_100:.2f}",
+                            text_color=color_amount(bb_per_100)
+                        )
+                        self.std_dev.configure(
+                            text=f"Std Dev (BB/100): {std_dev:.2f}"
+                        )
             else:
                 # Reset labels if no sessions found
                 self.total_profit.configure(text="Total Won: -")
@@ -365,6 +542,12 @@ class StatsTab(ctk.CTkFrame):
                 self.win_percentage.configure(text="Win Rate: -%")
                 self.biggest_win.configure(text="Biggest Win: -")
                 self.biggest_loss.configure(text="Biggest Loss: -")
+                self.bb_per_100.configure(text="BB/100: -")
+                self.std_dev.configure(text="Std Dev (BB): -")
+                self.total_hands.configure(text="Total Hands: -")
+                self.hands_per_hour.configure(text="Hands/Hour: -")
+                self.best_streak.configure(text="Best Streak: -")
+                self.worst_streak.configure(text="Worst Streak: -")
                 
         finally:
             session.close()
