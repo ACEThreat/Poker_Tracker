@@ -212,7 +212,7 @@ class SessionScraper:
             self.driver = None 
 
 SESSION_PATTERN = (
-    r"(Jan \d{1,2}, \d{1,2}:\d{2} [APM]{2})\n"  # Date and time
+    r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}, \d{1,2}:\d{2} [APM]{2})\n"  # Date and time
     r"((?:\d+h )?\d+m \d+s)\n"  # Duration
     r"(Hold'em|Omaha)\n"  # Game format
     r"([\d.]+ SC / [\d.]+ SC)\n"  # Stakes
