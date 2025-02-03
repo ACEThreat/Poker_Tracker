@@ -21,6 +21,14 @@
 - 📊 Customizable data visualization
 - 💾 Backup and restore functionality
 
+## 🎮 Supported Sites
+
+Currently supported poker platforms:
+
+- 🃏 [Clubs Poker](https://clubspoker.com) 
+
+*More sites coming soon! Feel free to request support for additional platforms.*
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -128,14 +136,6 @@ pip install -r requirements.txt
 - Follow instructions carefully
 </details>
 
-## 📚 Documentation
-
-For complete documentation, visit our [Wiki](https://github.com/yourusername/poker_tracker/wiki).
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md).
-
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -143,5 +143,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-Made with ❤️ by Poker Players for Poker Players
+Made with ❤️ by Poker fish for Poker Players
 </div>
