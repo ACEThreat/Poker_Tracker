@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from ...database.database import Database
 from ...database.models import Session
-from tkinter import Toplevel
+from tkinter import Toplevel, messagebox
 from matplotlib.collections import LineCollection
 
 class BankrollOverviewTab(ctk.CTkFrame):
@@ -81,6 +81,17 @@ class BankrollOverviewTab(ctk.CTkFrame):
             hover_color="#1D5827"
         )
         self.refresh_button.pack(side="left", padx=5, pady=5)
+        
+        # Add Manual Adjustment button
+        self.adjust_button = ctk.CTkButton(
+            button_frame,
+            text="Manual Adjustment",
+            command=self.show_adjustment_dialog,
+            width=120,
+            fg_color="#8B4513",  # Brown color
+            hover_color="#654321"
+        )
+        self.adjust_button.pack(side="left", padx=5, pady=5)
 
     def create_bankroll_stats(self):
         """Create frame for bankroll statistics"""
@@ -553,3 +564,81 @@ class BankrollOverviewTab(ctk.CTkFrame):
             ctk.CTkLabel(row_frame, text=str(value)).grid(
                 row=0, column=col, padx=5, pady=2, sticky="ew"
             )
+
+    def show_adjustment_dialog(self):
+        """Show dialog for manual bankroll adjustment"""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Manual Bankroll Adjustment")
+        dialog.geometry("300x200")
+        dialog.transient(self)  # Make dialog modal
+        dialog.grab_set()
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = self.winfo_rootx() + (self.winfo_width() - dialog.winfo_width()) // 2
+        y = self.winfo_rooty() + (self.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        # Amount entry
+        amount_frame = ctk.CTkFrame(dialog)
+        amount_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(amount_frame, text="Amount ($):").pack(side="left", padx=5)
+        amount_var = ctk.StringVar()
+        amount_entry = ctk.CTkEntry(amount_frame, textvariable=amount_var)
+        amount_entry.pack(side="left", fill="x", expand=True, padx=5)
+        
+        # Note entry
+        note_frame = ctk.CTkFrame(dialog)
+        note_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(note_frame, text="Note:").pack(side="left", padx=5)
+        note_var = ctk.StringVar(value="Manual Adjustment")
+        note_entry = ctk.CTkEntry(note_frame, textvariable=note_var)
+        note_entry.pack(side="left", fill="x", expand=True, padx=5)
+        
+        def submit_adjustment():
+            try:
+                amount = float(amount_var.get())
+                note = note_var.get()
+                
+                # Create a manual adjustment session
+                db = Database()
+                session = db.get_session()
+                try:
+                    current_time = datetime.now()
+                    new_session = Session(
+                        start_time=current_time,
+                        duration="0h 0m 0s",
+                        game_format=note,  # Use the note as game format
+                        stakes="N/A",
+                        hands_played=0,
+                        result=amount,
+                        total_hours=0,
+                        created_at=datetime.utcnow()
+                    )
+                    session.add(new_session)
+                    session.commit()
+                    
+                    # Refresh the display
+                    self.fetch_sessions()
+                    dialog.destroy()
+                    
+                    messagebox.showinfo("Success", f"Manual adjustment of ${amount:,.2f} added successfully")
+                except Exception as e:
+                    session.rollback()
+                    messagebox.showerror("Error", f"Failed to add adjustment: {str(e)}")
+                finally:
+                    session.close()
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid number for the amount")
+        
+        # Submit button
+        submit_button = ctk.CTkButton(
+            dialog,
+            text="Submit",
+            command=submit_adjustment,
+            fg_color="#287C37",
+            hover_color="#1D5827"
+        )
+        submit_button.pack(pady=20)
