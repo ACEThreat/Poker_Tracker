@@ -2,6 +2,10 @@
 
 # 🎲 Poker Session Tracker
 
+Screenshots:
+![image](https://github.com/user-attachments/assets/cda89f45-b801-4a62-b02e-7fad9f68d12a)
+![image](https://github.com/user-attachments/assets/52e8fa60-98d2-492c-8da6-1d9563ea737f)
+
 *A comprehensive poker session tracking and analysis tool designed for unfriendly poker sites.*
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
