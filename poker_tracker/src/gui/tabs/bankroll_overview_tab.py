@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from ...database.database import Database
 from ...database.models import Session
-from tkinter import Toplevel
+from tkinter import Toplevel, messagebox
 from matplotlib.collections import LineCollection
 
 class BankrollOverviewTab(ctk.CTkFrame):
@@ -81,6 +81,17 @@ class BankrollOverviewTab(ctk.CTkFrame):
             hover_color="#1D5827"
         )
         self.refresh_button.pack(side="left", padx=5, pady=5)
+        
+        # Add Manual Adjustment button
+        self.adjust_button = ctk.CTkButton(
+            button_frame,
+            text="Manual Adjustment",
+            command=self.show_adjustment_dialog,
+            width=120,
+            fg_color="#8B4513",  # Brown color
+            hover_color="#654321"
+        )
+        self.adjust_button.pack(side="left", padx=5, pady=5)
 
     def create_bankroll_stats(self):
         """Create frame for bankroll statistics"""
@@ -155,77 +166,80 @@ class BankrollOverviewTab(ctk.CTkFrame):
         if not sessions:
             return
         
-        # Sort sessions by date
-        sorted_sessions = sorted(sessions, key=lambda s: s.start_time)
-        
-        # Calculate time-based changes
-        now = datetime.now()
-        thirty_days_ago = now - timedelta(days=30)
-        seven_days_ago = now - timedelta(days=7)
-        
-        # Calculate changes for different time periods
-        monthly_change = sum(s.result for s in sorted_sessions 
-                            if s.start_time >= thirty_days_ago)
-        weekly_change = sum(s.result for s in sorted_sessions 
-                           if s.start_time >= seven_days_ago)
-        
-        # Calculate bankroll progression
-        current_bankroll = 1573.30
-        initial_bankroll = current_bankroll - sum(s.result for s in sorted_sessions)
-        running_balance = initial_bankroll
-        peak_balance = initial_bankroll
-        max_drawdown = 0
-        
-        # Track running balance and find peak/drawdown
-        for session in sorted_sessions:
-            running_balance += session.result
-            peak_balance = max(peak_balance, running_balance)
-            current_drawdown = peak_balance - running_balance
-            max_drawdown = max(max_drawdown, current_drawdown)
-        
-        # Calculate ROI
-        total_profit = sum(s.result for s in sorted_sessions)
-        initial_investment = initial_bankroll
-        roi = (total_profit / initial_investment * 100) if initial_investment > 0 else 0
-        
-        # Helper function for formatting amounts with colors
-        def format_amount(amount, include_plus=True):
-            color = "#287C37" if amount > 0 else "#FF3B30" if amount < 0 else "gray"
-            sign = "+" if amount > 0 and include_plus else ""
-            return f"{sign}${abs(amount):,.2f}", color
-        
-        # Update all labels with formatted values
-        self.total_bankroll.configure(
-            text=f"Current Bankroll\n${current_bankroll:,.2f}",
-            text_color="white"
-        )
-        
-        monthly_amount, monthly_color = format_amount(monthly_change)
-        self.monthly_change.configure(
-            text=f"30 Day Change\n{monthly_amount}",
-            text_color=monthly_color
-        )
-        
-        weekly_amount, weekly_color = format_amount(weekly_change)
-        self.weekly_change.configure(
-            text=f"7 Day Change\n{weekly_amount}",
-            text_color=weekly_color
-        )
-        
-        self.max_bankroll.configure(
-            text=f"Peak Bankroll\n${peak_balance:,.2f}",
-            text_color="white"
-        )
-        
-        self.drawdown.configure(
-            text=f"Max Drawdown\n${max_drawdown:,.2f}",
-            text_color="#FF3B30" if max_drawdown > 0 else "gray"
-        )
-        
-        self.roi.configure(
-            text=f"Total ROI\n{roi:+.1f}%",
-            text_color="#287C37" if roi > 0 else "#FF3B30" if roi < 0 else "gray"
-        )
+        try:
+            # Sort sessions by date
+            sorted_sessions = sorted(sessions, key=lambda s: s.start_time)
+            
+            # Calculate time-based changes
+            now = datetime.now()
+            thirty_days_ago = now - timedelta(days=30)
+            seven_days_ago = now - timedelta(days=7)
+            
+            # Calculate changes with safe conversions
+            monthly_change = sum(float(s.result) if s.result else 0 for s in sorted_sessions 
+                               if s.start_time >= thirty_days_ago)
+            weekly_change = sum(float(s.result) if s.result else 0 for s in sorted_sessions 
+                              if s.start_time >= seven_days_ago)
+            
+            # Calculate current bankroll as sum of all results
+            current_bankroll = sum(float(s.result) if s.result else 0 for s in sorted_sessions)
+            
+            # Calculate bankroll progression
+            running_balance = 0
+            peak_balance = 0
+            max_drawdown = 0
+            
+            # Track running balance and find peak/drawdown
+            for session in sorted_sessions:
+                result = float(session.result) if session.result else 0
+                running_balance += result
+                peak_balance = max(peak_balance, running_balance)
+                current_drawdown = peak_balance - running_balance
+                max_drawdown = max(max_drawdown, current_drawdown)
+            
+            # Calculate ROI (using current bankroll as reference)
+            roi = (current_bankroll / abs(current_bankroll) * 100) if current_bankroll != 0 else 0
+            
+            # Helper function for formatting amounts with colors
+            def format_amount(amount, include_plus=True):
+                color = "#287C37" if amount > 0 else "#FF3B30" if amount < 0 else "gray"
+                sign = "+" if amount > 0 and include_plus else ""
+                return f"{sign}${abs(amount):,.2f}", color
+            
+            # Update all labels with formatted values
+            self.total_bankroll.configure(
+                text=f"Current Bankroll\n${current_bankroll:,.2f}",
+                text_color="white"
+            )
+            
+            monthly_amount, monthly_color = format_amount(monthly_change)
+            self.monthly_change.configure(
+                text=f"30 Day Change\n{monthly_amount}",
+                text_color=monthly_color
+            )
+            
+            weekly_amount, weekly_color = format_amount(weekly_change)
+            self.weekly_change.configure(
+                text=f"7 Day Change\n{weekly_amount}",
+                text_color=weekly_color
+            )
+            
+            self.max_bankroll.configure(
+                text=f"Peak Bankroll\n${peak_balance:,.2f}",
+                text_color="white"
+            )
+            
+            self.drawdown.configure(
+                text=f"Max Drawdown\n${max_drawdown:,.2f}",
+                text_color="#FF3B30" if max_drawdown > 0 else "gray"
+            )
+            
+            self.roi.configure(
+                text=f"Total ROI\n{roi:+.1f}%",
+                text_color="#287C37" if roi > 0 else "#FF3B30" if roi < 0 else "gray"
+            )
+        except Exception as e:
+            print(f"Error updating bankroll stats: {e}")
 
     def show_graph_window(self):
         # Create new window
@@ -369,12 +383,32 @@ class BankrollOverviewTab(ctk.CTkFrame):
                 return
             
             # Update session data list with start_time, duration, and total_hours
-            self.session_data_list = [{
-                'profit': float(s.result),
-                'bb_result': float(s.result) / float(s.stakes.split('/')[1].strip().split()[0]),
-                'duration': s.duration,  # Add duration
-                'start_time': s.start_time
-            } for s in sessions]
+            self.session_data_list = []
+            for s in sessions:
+                try:
+                    # Extract big blind size more safely with better error handling
+                    stakes_parts = s.stakes.split('/')
+                    bb_size = 1  # Default value
+                    if len(stakes_parts) >= 2:
+                        # Remove any non-numeric characters except decimal point
+                        bb_str = ''.join(c for c in stakes_parts[1] if c.isdigit() or c == '.')
+                        bb_size = float(bb_str) if bb_str else 1
+
+                    self.session_data_list.append({
+                        'profit': float(s.result),
+                        'bb_result': float(s.result) / bb_size,
+                        'duration': s.duration,
+                        'start_time': s.start_time
+                    })
+                except (ValueError, IndexError, AttributeError) as e:
+                    print(f"Warning: Error processing session data: {e}")
+                    # Add session with default values if there's an error
+                    self.session_data_list.append({
+                        'profit': float(s.result) if s.result else 0,
+                        'bb_result': 0,
+                        'duration': s.duration,
+                        'start_time': s.start_time
+                    })
             
             # Update bankroll stats
             self.update_bankroll_stats(sessions)
@@ -415,55 +449,68 @@ class BankrollOverviewTab(ctk.CTkFrame):
     def sort_table(self, column):
         """Sort table data based on clicked column"""
         if self.current_sort_column == column:
-            # If clicking the same column, reverse the sort order
             self.sort_ascending = not self.sort_ascending
         else:
-            # New column, default to ascending
             self.sort_ascending = True
             self.current_sort_column = column
         
         # Convert grouped_data to list for sorting
         data_list = [(stakes, game, data) for (stakes, game), data in self.grouped_data.items()]
         
-        # Define sort key functions for each column
+        # Define sort key functions with safe conversions
+        def safe_bb100_calc(x):
+            try:
+                if x[2]['hands'] > 0 and x[2]['bb_size'] > 0:
+                    return (x[2]['total_profit'] / x[2]['bb_size'] * 100) / x[2]['hands']
+                return 0
+            except (KeyError, ZeroDivisionError, TypeError):
+                return 0
+
         sort_keys = {
             0: lambda x: x[0],  # Stakes
             1: lambda x: x[1],  # Game
-            2: lambda x: x[2]['total_profit'],  # Won
-            3: lambda x: x[2]['hands'],  # Hands
-            4: lambda x: (x[2]['total_profit'] / x[2]['bb_size'] * 100) / x[2]['hands'] 
-               if x[2]['hands'] > 0 else 0  # BB/100
+            2: lambda x: float(x[2]['total_profit']) if x[2]['total_profit'] else 0,  # Won
+            3: lambda x: int(x[2]['hands']) if x[2]['hands'] else 0,  # Hands
+            4: safe_bb100_calc  # BB/100
         }
         
         # Sort the data
-        data_list.sort(
-            key=sort_keys[column],
-            reverse=not self.sort_ascending
-        )
+        try:
+            data_list.sort(
+                key=sort_keys[column],
+                reverse=not self.sort_ascending
+            )
+        except Exception as e:
+            print(f"Error sorting table: {e}")
+            return
         
         # Clear and rebuild the table with sorted data
         self.clear_table()
         
         # Rebuild table with sorted data
         for row_idx, (stakes, game, data) in enumerate(data_list, start=1):
-            profit_in_bb = data['total_profit'] / data['bb_size']
-            bb_per_100 = (profit_in_bb * 100) / data['hands'] if data['hands'] > 0 else 0
-            
-            cells = [
-                stakes,
-                game,
-                f"${data['total_profit']:.2f}",
-                str(data['hands']),
-                f"{bb_per_100:.2f}"
-            ]
-            
-            for col, value in enumerate(cells):
-                ctk.CTkLabel(
-                    self.table_frame,
-                    text=str(value),
-                    font=("Arial", 12),  # Increased font size
-                    anchor="center"  # Center align text
-                ).grid(row=row_idx, column=col, padx=5, pady=4, sticky="ew")
+            try:
+                profit_in_bb = data['total_profit'] / data['bb_size'] if data['bb_size'] != 0 else 0
+                bb_per_100 = (profit_in_bb * 100) / data['hands'] if data['hands'] > 0 else 0
+                
+                cells = [
+                    stakes,
+                    game,
+                    f"${data['total_profit']:.2f}",
+                    str(data['hands']),
+                    f"{bb_per_100:.2f}"
+                ]
+                
+                for col, value in enumerate(cells):
+                    ctk.CTkLabel(
+                        self.table_frame,
+                        text=str(value),
+                        font=("Arial", 12),
+                        anchor="center"
+                    ).grid(row=row_idx, column=col, padx=5, pady=4, sticky="ew")
+            except Exception as e:
+                print(f"Error displaying row {row_idx}: {e}")
+                continue
 
     def clear_table(self):
         """Clear all rows except headers"""
@@ -475,20 +522,31 @@ class BankrollOverviewTab(ctk.CTkFrame):
         """Update the sessions table with aggregated data"""
         self.clear_table()
         
-        # Group sessions by stakes and game format (keep original grouping logic)
+        # Group sessions by stakes and game format
         self.grouped_data = {}
         for s in sessions:
             key = (s.stakes, s.game_format)
             if key not in self.grouped_data:
+                # Safely extract BB size
+                try:
+                    stakes_parts = s.stakes.split('/')
+                    bb_size = 1  # Default value
+                    if len(stakes_parts) >= 2:
+                        # Remove any non-numeric characters except decimal point
+                        bb_str = ''.join(c for c in stakes_parts[1] if c.isdigit() or c == '.')
+                        bb_size = float(bb_str) if bb_str else 1
+                except (ValueError, IndexError, AttributeError):
+                    bb_size = 1
+
                 self.grouped_data[key] = {
                     'hands': 0,
                     'total_profit': 0,
-                    'bb_size': float(s.stakes.split('/')[1].strip().split()[0])
+                    'bb_size': bb_size
                 }
             
             data = self.grouped_data[key]
-            data['hands'] += s.hands_played
-            data['total_profit'] += s.result
+            data['hands'] += s.hands_played if s.hands_played else 0
+            data['total_profit'] += float(s.result) if s.result else 0
         
         # Initial sort by stakes ascending
         self.current_sort_column = 0  # Stakes column
@@ -505,3 +563,81 @@ class BankrollOverviewTab(ctk.CTkFrame):
             ctk.CTkLabel(row_frame, text=str(value)).grid(
                 row=0, column=col, padx=5, pady=2, sticky="ew"
             )
+
+    def show_adjustment_dialog(self):
+        """Show dialog for manual bankroll adjustment"""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Manual Bankroll Adjustment")
+        dialog.geometry("300x200")
+        dialog.transient(self)  # Make dialog modal
+        dialog.grab_set()
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = self.winfo_rootx() + (self.winfo_width() - dialog.winfo_width()) // 2
+        y = self.winfo_rooty() + (self.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        # Amount entry
+        amount_frame = ctk.CTkFrame(dialog)
+        amount_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(amount_frame, text="Amount ($):").pack(side="left", padx=5)
+        amount_var = ctk.StringVar()
+        amount_entry = ctk.CTkEntry(amount_frame, textvariable=amount_var)
+        amount_entry.pack(side="left", fill="x", expand=True, padx=5)
+        
+        # Note entry
+        note_frame = ctk.CTkFrame(dialog)
+        note_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(note_frame, text="Note:").pack(side="left", padx=5)
+        note_var = ctk.StringVar(value="Manual Adjustment")
+        note_entry = ctk.CTkEntry(note_frame, textvariable=note_var)
+        note_entry.pack(side="left", fill="x", expand=True, padx=5)
+        
+        def submit_adjustment():
+            try:
+                amount = float(amount_var.get())
+                note = note_var.get()
+                
+                # Create a manual adjustment session
+                db = Database()
+                session = db.get_session()
+                try:
+                    current_time = datetime.now()
+                    new_session = Session(
+                        start_time=current_time,
+                        duration="0h 0m 0s",
+                        game_format=note,  # Use the note as game format
+                        stakes="N/A",
+                        hands_played=0,
+                        result=amount,
+                        total_hours=0,
+                        created_at=datetime.utcnow()
+                    )
+                    session.add(new_session)
+                    session.commit()
+                    
+                    # Refresh the display
+                    self.fetch_sessions()
+                    dialog.destroy()
+                    
+                    messagebox.showinfo("Success", f"Manual adjustment of ${amount:,.2f} added successfully")
+                except Exception as e:
+                    session.rollback()
+                    messagebox.showerror("Error", f"Failed to add adjustment: {str(e)}")
+                finally:
+                    session.close()
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid number for the amount")
+        
+        # Submit button
+        submit_button = ctk.CTkButton(
+            dialog,
+            text="Submit",
+            command=submit_adjustment,
+            fg_color="#287C37",
+            hover_color="#1D5827"
+        )
+        submit_button.pack(pady=20)

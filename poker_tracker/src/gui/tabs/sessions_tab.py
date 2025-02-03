@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 from matplotlib.collections import LineCollection
+from tkinter import messagebox
 
 class DatePicker(ctk.CTkFrame):
     def __init__(self, parent, **kwargs):
@@ -66,6 +67,7 @@ class SessionsTab(ctk.CTkFrame):
         self.total_sessions = 0
         self.current_sort_column = 0
         self.sort_ascending = False
+        self.selected_sessions = {}  # Dictionary to track selected sessions
         
         # Configure main frame grid
         self.grid_columnconfigure(0, weight=1)
@@ -162,6 +164,17 @@ class SessionsTab(ctk.CTkFrame):
             hover_color="#1E4175"
         )
         self.graph_button.grid(row=0, column=8, padx=5)
+        
+        # Delete selected button
+        self.delete_button = ctk.CTkButton(
+            filter_frame,
+            text="Delete Selected",
+            command=self.delete_selected_sessions,
+            width=100,
+            fg_color="#FF3B30",  # Red color
+            hover_color="#CC2F26"
+        )
+        self.delete_button.grid(row=0, column=9, padx=5)
         
         # Load stakes options
         self.load_stakes_options()
@@ -301,7 +314,7 @@ class SessionsTab(ctk.CTkFrame):
             self.table_container.grid_columnconfigure(i, weight=1)
         
         # Headers
-        headers = ["Date", "Stakes", "Game", "Duration", "Hands", "Result", "BB/100", "$/Hour"]
+        headers = ["Select", "Date", "Stakes", "Game", "Duration", "Hands", "Result", "BB/100", "$/Hour"]
         for i, header in enumerate(headers):
             header_button = ctk.CTkButton(
                 self.table_container,
@@ -315,32 +328,58 @@ class SessionsTab(ctk.CTkFrame):
     def update_table(self, sessions):
         """Update table with session data"""
         self.clear_table()
+        self.selected_sessions.clear()
         
         for row_idx, s in enumerate(sessions, start=1):
-            # Calculate stats
-            duration_hours = self.parse_duration(s.duration)
-            bb_size = float(s.stakes.split('/')[1].strip().split()[0])
-            bb_per_100 = (s.result / bb_size * 100) / s.hands_played if s.hands_played > 0 else 0
-            hourly_rate = s.result / duration_hours if duration_hours > 0 else 0
-            
-            cells = [
-                s.start_time.strftime("%Y-%m-%d %H:%M"),
-                s.stakes,
-                s.game_format,
-                s.duration,
-                str(s.hands_played),
-                f"${s.result:.2f}",
-                f"{bb_per_100:.2f}",
-                f"${hourly_rate:.2f}"
-            ]
-            
-            for col, value in enumerate(cells):
-                ctk.CTkLabel(
-                    self.table_container,  # Changed from self.table_frame
-                    text=str(value),
-                    font=("Arial", 12),
-                    anchor="center"
-                ).grid(row=row_idx, column=col, padx=5, pady=4, sticky="ew")
+            try:
+                # Calculate stats
+                duration_hours = self.parse_duration(s.duration)
+                
+                # Create checkbox
+                checkbox_var = ctk.BooleanVar()
+                checkbox = ctk.CTkCheckBox(
+                    self.table_container,
+                    text="",
+                    variable=checkbox_var,
+                    width=20,
+                    command=lambda s=s, var=checkbox_var: self.on_session_select(s, var)
+                )
+                checkbox.grid(row=row_idx, column=0, padx=5, pady=4)
+                
+                # Safer BB size extraction
+                bb_size = 1  # Default value
+                try:
+                    stakes_parts = s.stakes.split('/')
+                    if len(stakes_parts) >= 2:
+                        bb_str = ''.join(c for c in stakes_parts[1] if c.isdigit() or c == '.')
+                        bb_size = float(bb_str) if bb_str else 1
+                except (ValueError, IndexError, AttributeError):
+                    bb_size = 1
+                
+                bb_per_100 = (s.result / bb_size * 100) / s.hands_played if s.hands_played > 0 else 0
+                hourly_rate = s.result / duration_hours if duration_hours > 0 else 0
+                
+                cells = [
+                    s.start_time.strftime("%Y-%m-%d %H:%M"),
+                    s.stakes,
+                    s.game_format,
+                    s.duration,
+                    str(s.hands_played),
+                    f"${s.result:.2f}",
+                    f"{bb_per_100:.2f}",
+                    f"${hourly_rate:.2f}"
+                ]
+                
+                for col, value in enumerate(cells):
+                    ctk.CTkLabel(
+                        self.table_container,
+                        text=str(value),
+                        font=("Arial", 12),
+                        anchor="center"
+                    ).grid(row=row_idx, column=col+1, padx=5, pady=4, sticky="ew")
+            except Exception as e:
+                print(f"Error processing row {row_idx}: {e}")
+                continue
 
     def clear_table(self):
         """Clear all rows except headers"""
@@ -550,3 +589,49 @@ class SessionsTab(ctk.CTkFrame):
             
         finally:
             session.close() 
+
+    def on_session_select(self, session, checkbox_var):
+        """Handle session selection"""
+        if checkbox_var.get():
+            self.selected_sessions[session.id] = session
+        else:
+            self.selected_sessions.pop(session.id, None)
+
+    def delete_selected_sessions(self):
+        """Delete selected sessions from database"""
+        if not self.selected_sessions:
+            messagebox.showwarning("No Selection", "Please select sessions to delete")
+            return
+        
+        if not messagebox.askyesno("Confirm Delete", 
+            f"Are you sure you want to delete {len(self.selected_sessions)} selected sessions?\nThis action cannot be undone."):
+            return
+        
+        db = Database()
+        session = db.get_session()
+        try:
+            # Delete selected sessions
+            session.query(Session).filter(
+                Session.id.in_(self.selected_sessions.keys())
+            ).delete(synchronize_session=False)
+            
+            session.commit()
+            messagebox.showinfo("Success", f"{len(self.selected_sessions)} sessions deleted successfully")
+            
+            # Clear selection and refresh
+            self.selected_sessions.clear()
+            self.fetch_sessions()
+            
+            # Update other tabs if needed
+            main_window = self.winfo_toplevel()
+            if hasattr(main_window, 'tabs'):
+                if "Stats" in main_window.tabs:
+                    main_window.tabs["Stats"].update_stats()
+                if "Bankroll Overview" in main_window.tabs:
+                    main_window.tabs["Bankroll Overview"].fetch_sessions()
+                
+        except Exception as e:
+            session.rollback()
+            messagebox.showerror("Error", f"Failed to delete sessions: {str(e)}")
+        finally:
+            session.close()

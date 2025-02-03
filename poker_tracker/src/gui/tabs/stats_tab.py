@@ -332,7 +332,7 @@ class StatsTab(ctk.CTkFrame):
         """Calculate best and worst streaks using cumulative results, including BB data"""
         if not sessions:
             return (0, 0, 0, 0), (0, 0, 0, 0)  # (profit, BB, sessions, hands) for best and worst
-
+        
         # Sort sessions by date
         sorted_sessions = sorted(sessions, key=lambda s: s.start_time)
         
@@ -349,36 +349,34 @@ class StatsTab(ctk.CTkFrame):
                 
                 # Calculate total profit and BB for this range
                 for s in sorted_sessions[j:i+1]:
-                    profit_in_range += s.result
-                    hands_in_range += s.hands_played
+                    profit_in_range += s.result if s.result else 0
+                    hands_in_range += s.hands_played if s.hands_played else 0
                     
                     try:
-                        # Extract BB size from stakes (e.g., "1 SC / 2 SC" -> 2)
-                        bb_size = float(s.stakes.split('/')[1].strip().split()[0])
-                        # Convert result to BB
-                        bb_result = s.result / bb_size
-                        bb_in_range += bb_result
-                    except (IndexError, ValueError) as e:
-                        logger.warning(f"Could not process stakes {s.stakes}: {e}")
+                        stakes_parts = s.stakes.split('/')
+                        if len(stakes_parts) >= 2:
+                            bb_str = ''.join(c for c in stakes_parts[1] if c.isdigit() or c == '.')
+                            bb_size = float(bb_str) if bb_str else 1
+                            bb_result = s.result / bb_size if s.result else 0
+                            bb_in_range += bb_result
+                    except (ValueError, IndexError, AttributeError) as e:
+                        print(f"Warning: Could not process stakes {s.stakes}: {e}")
                         continue
                 
                 if profit_in_range > best_streak['profit']:
-                    best_streak = {
+                    best_streak.update({
                         'profit': profit_in_range,
                         'bb': bb_in_range,
                         'sessions': i - j + 1,
-                        'hands': hands_in_range,
-                        'start_idx': j
-                    }
-                
+                        'hands': hands_in_range
+                    })
                 if profit_in_range < worst_streak['profit']:
-                    worst_streak = {
+                    worst_streak.update({
                         'profit': profit_in_range,
                         'bb': bb_in_range,
                         'sessions': i - j + 1,
-                        'hands': hands_in_range,
-                        'start_idx': j
-                    }
+                        'hands': hands_in_range
+                    })
         
         return (
             (best_streak['profit'], best_streak['bb'], best_streak['sessions'], best_streak['hands']),
