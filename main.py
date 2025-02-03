@@ -3,11 +3,7 @@ import sys
 import os
 from pathlib import Path
 
-# Add the poker_tracker directory to Python path
-project_root = Path(__file__).parent
-sys.path.append(str(project_root))
-
-from poker_tracker.src.gui.main_window import MainWindow
+from src.gui.main_window import MainWindow
 
 os.environ['NSSupportsAutomaticGraphicsSwitching'] = 'True'
 

@@ -3,11 +3,11 @@ from pathlib import Path
 import os
 
 # Update these imports to use absolute paths
-from poker_tracker.src.gui.tabs.bankroll_overview_tab import BankrollOverviewTab
-from poker_tracker.src.gui.tabs.sessions_tab import SessionsTab
-from poker_tracker.src.gui.tabs.stats_tab import StatsTab
-from poker_tracker.src.gui.tabs.settings_tab import SettingsTab
-from poker_tracker.src.gui.tabs.import_tab import ImportTab
+from ..gui.tabs.bankroll_overview_tab import BankrollOverviewTab
+from ..gui.tabs.sessions_tab import SessionsTab
+from ..gui.tabs.stats_tab import StatsTab
+from ..gui.tabs.settings_tab import SettingsTab
+from ..gui.tabs.import_tab import ImportTab
 from ..database.database import Database
 from ..config import Config
 

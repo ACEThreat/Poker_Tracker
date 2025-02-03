@@ -1,0 +1,11 @@
+Metadata-Version: 2.2
+Name: poker_tracker
+Version: 0.2.0
+Requires-Python: >=3.8
+Requires-Dist: customtkinter>=5.2.0
+Requires-Dist: sqlalchemy>=2.0.0
+Requires-Dist: pandas>=2.0.0
+Requires-Dist: matplotlib>=3.7.0
+Requires-Dist: plotly>=5.18.0
+Dynamic: requires-dist
+Dynamic: requires-python
