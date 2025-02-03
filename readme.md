@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎲 Poker Tracker
+# 🎲 Poker Session Tracker
 
 *A comprehensive poker session tracking and analysis tool designed for unfriendly poker sites.*
 
