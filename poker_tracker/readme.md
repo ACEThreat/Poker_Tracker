@@ -1,38 +1,43 @@
-# Poker Tracker
+<div align="center">
 
-A comprehensive poker session tracking and analysis tool designed for unfriendly poker sites.
+# 🎲 Poker Tracker
 
-## Features
+*A comprehensive poker session tracking and analysis tool designed for unfriendly poker sites.*
 
-- Track poker session results and statistics
-- Analyze performance with detailed graphs and metrics
-- Import sessions automatically from supported poker sites
-- Calculate variance and recommended bankroll
-- Cross-platform support (Windows, macOS, Linux)
-- Advanced bankroll management tools
-- Real-time statistics and performance tracking
-- Manual bankroll adjustments
-- Automated session importing from Clubs Poker
-- Detailed performance analytics (BB/100, hourly rate, etc.)
-- Customizable graphs and data visualization
-- Backup and restore functionality
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/yourusername/poker_tracker)
 
-## Requirements
+</div>
+
+## ✨ Features
+
+- 📊 Track poker session results and statistics
+- 📈 Advanced performance analytics (BB/100, hourly rate)
+- 🤖 Automated session importing from Clubs Poker
+- 💰 Sophisticated bankroll management tools
+- 📱 Cross-platform support
+- 🔄 Real-time statistics tracking
+- 📊 Customizable data visualization
+- 💾 Backup and restore functionality
+
+## 🚀 Quick Start
+
+### Prerequisites
 
 - Python 3.8 or higher
-- Google Chrome (for automated session importing)
-- Operating System: Windows, macOS, or Linux
+- Google Chrome
+- Windows, macOS, or Linux
 
-## Installation
+### Installation
 
-1. Clone the repository:
-
+1️⃣ Clone the repository:
 ```bash
 git clone https://github.com/yourusername/poker_tracker.git
 cd poker_tracker
 ```
 
-2. Create and activate a virtual environment:
+2️⃣ Set up virtual environment:
 ```bash
 # Windows
 python -m venv .venv
@@ -43,105 +48,100 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-3. Install required packages:
+3️⃣ Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Super Beginner's Guide
+## 🔰 Beginner's Guide
 
-### Windows Installation (No Git Required)
+### Windows Setup (No Git)
 
-1. Download the program:
-   - Go to the releases page
-   - Download the latest `poker_tracker.zip` file
-   - Extract the zip file to a folder (e.g., `C:\PokerTracker`)
+<details>
+<summary>Click to expand</summary>
 
-2. Install Python:
-   - Download Python 3.8 or higher from [python.org](https://www.python.org/downloads/)
-   - During installation, make sure to check "Add Python to PATH"
-   - Click "Install Now" with all default options
+1. **Download**
+   - Visit the releases page
 
-3. Install the program:
-   - Open Command Prompt (search for "cmd" in Start menu)
-   - Navigate to the folder where you extracted the files:
-     ```
-     cd C:\PokerTracker
-     ```
-   - Create a virtual environment:
-     ```
-     python -m venv .venv
-     .venv\Scripts\activate
-     ```
-   - Install required packages:
-     ```
-     pip install -r requirements.txt
-     ```
+2. **Install Python**
+   - Get Python from [python.org](https://www.python.org/downloads/)
+   - ✅ Check "Add Python to PATH"
+   - Follow default installation
 
-4. Start the program:
-   - Double-click the `run.bat` file in the PokerTracker folder
-   OR
-   - In Command Prompt:
-     ```
-     python main.py
-     ```
+3. **Setup**
+   ```cmd
+   cd C:\PokerTracker
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-### macOS Installation (No Git Required)
+4. **Launch**
+   - Execute `python main.py`
+</details>
 
-1. Download the program:
-   - Go to the releases page
-   - Download the latest `poker_tracker.zip` file
-   - Extract the zip file to a folder (e.g., `~/PokerTracker`)
+### macOS Setup (No Git)
 
-2. Install Python:
-   - Download Python 3.8 or higher from [python.org](https://www.python.org/downloads/)
-   - Open the downloaded `.pkg` file and follow installation instructions
-   - During installation, the default options are fine
+<details>
+<summary>Click to expand</summary>
 
-3. Install the program:
-   - Open Terminal (search for "Terminal" in Spotlight)
-   - Navigate to the folder where you extracted the files:
-     ```
-     cd ~/PokerTracker
-     ```
-   - Create a virtual environment:
-     ```
-     python3 -m venv .venv
-     source .venv/bin/activate
-     ```
-   - Install required packages:
-     ```
-     pip install -r requirements.txt
-     ```
+1. **Download**
+   - Visit the releases page
+   - Download `poker_tracker.zip`
+   - Extract to `~/PokerTracker`
 
-4. Start the program:
-   - Double-click the `run.command` file in the PokerTracker folder
-   OR
-   - In Terminal:
-     ```
-     python main.py
-     ```
+2. **Install Python**
+   - Get Python from [python.org](https://www.python.org/downloads/)
+   - Follow installation wizard
 
-### Troubleshooting
+3. **Setup**
+   ```bash
+   cd ~/PokerTracker
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-1. "Python not found" error:
-   - Make sure Python is installed
-   - Try using `python3` instead of `python` on macOS
-   - Restart your computer after installing Python
+4. **Launch**
+   - Run `run.command` or
+   - Execute `python main.py`
+</details>
 
-2. Chrome profile issues:
-   - Make sure Google Chrome is installed
-   - Log into your poker site in Chrome before using auto-import
-   - Follow the Chrome profile setup instructions in the app
+## 🔧 Troubleshooting
 
-3. Import not working:
-   - Ensure you're logged into your poker site in Chrome
-   - Close Chrome completely before importing
-   - Follow the on-screen instructions carefully
+<details>
+<summary>Common Issues</summary>
 
-For more detailed instructions or help, see the full documentation above.
+### Python Not Found
+- Verify Python installation
+- Try `python3` on macOS
+- Restart system
 
-## Getting Started
+### Chrome Profile Issues
+- Ensure Chrome is installed
+- Login to poker site first
+- Follow in-app setup guide
 
-1. Start the application:
-```
+### Import Problems
+- Verify poker site login
+- Close Chrome completely
+- Follow instructions carefully
+</details>
+
+## 📚 Documentation
+
+For complete documentation, visit our [Wiki](https://github.com/yourusername/poker_tracker/wiki).
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md).
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+Made with ❤️ by Poker Players for Poker Players
+</div>
