@@ -111,7 +111,6 @@ pip install -r requirements.txt
    ```
 
 4. **Launch**
-   - Run `run.command` or
    - Execute `python main.py`
 </details>
 
