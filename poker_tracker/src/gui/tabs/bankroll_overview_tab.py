@@ -181,12 +181,12 @@ class BankrollOverviewTab(ctk.CTkFrame):
             weekly_change = sum(float(s.result) if s.result else 0 for s in sorted_sessions 
                               if s.start_time >= seven_days_ago)
             
-            # Calculate bankroll progression with safe conversions
-            current_bankroll = 1573.30
-            total_results = sum(float(s.result) if s.result else 0 for s in sorted_sessions)
-            initial_bankroll = current_bankroll - total_results
-            running_balance = initial_bankroll
-            peak_balance = initial_bankroll
+            # Calculate current bankroll as sum of all results
+            current_bankroll = sum(float(s.result) if s.result else 0 for s in sorted_sessions)
+            
+            # Calculate bankroll progression
+            running_balance = 0
+            peak_balance = 0
             max_drawdown = 0
             
             # Track running balance and find peak/drawdown
@@ -197,9 +197,8 @@ class BankrollOverviewTab(ctk.CTkFrame):
                 current_drawdown = peak_balance - running_balance
                 max_drawdown = max(max_drawdown, current_drawdown)
             
-            # Calculate ROI with safe division
-            total_profit = sum(float(s.result) if s.result else 0 for s in sorted_sessions)
-            roi = (total_profit / initial_bankroll * 100) if initial_bankroll > 0 else 0
+            # Calculate ROI (using current bankroll as reference)
+            roi = (current_bankroll / abs(current_bankroll) * 100) if current_bankroll != 0 else 0
             
             # Helper function for formatting amounts with colors
             def format_amount(amount, include_plus=True):
