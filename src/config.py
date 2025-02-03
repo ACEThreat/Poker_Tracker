@@ -15,9 +15,28 @@ class Config:
     
     # Default Chrome profile paths by OS
     DEFAULT_CHROME_PATHS = {
-        'Darwin': '~/Library/Application Support/Google/Chrome',  # macOS
-        'Windows': '~/AppData/Local/Google/Chrome/User Data',     # Windows
-        'Linux': '~/.config/google-chrome'                        # Linux
+        'Windows': r'C:\Users\{username}\AppData\Local\Google\Chrome\User Data',
+        'Darwin': '~/Library/Application Support/Google/Chrome/User Data',  # Updated macOS path
+        'Linux': '~/.config/google-chrome'
+    }
+    
+    # Add to existing DEFAULT_CHROME_PATHS
+    CHROME_PROFILES = {
+        'Windows': {
+            'Default': r'C:\Users\{username}\AppData\Local\Google\Chrome\User Data',
+            'Profile 1': r'C:\Users\{username}\AppData\Local\Google\Chrome\User Data\Profile 1',
+            'Profile 2': r'C:\Users\{username}\AppData\Local\Google\Chrome\User Data\Profile 2'
+        },
+        'Darwin': {  # macOS
+            'Default': '~/Library/Application Support/Google/Chrome/User Data',
+            'Profile 1': '~/Library/Application Support/Google/Chrome/User Data/Profile 1',
+            'Profile 2': '~/Library/Application Support/Google/Chrome/User Data/Profile 2'
+        },
+        'Linux': {
+            'Default': '~/.config/google-chrome',
+            'Profile 1': '~/.config/google-chrome/Profile 1',
+            'Profile 2': '~/.config/google-chrome/Profile 2'
+        }
     }
     
     @classmethod

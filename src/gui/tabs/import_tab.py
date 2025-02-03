@@ -46,13 +46,14 @@ class ImportTab(ctk.CTkFrame):
         # Get default path based on OS
         system = platform.system()
         if system == 'Windows':
-            default_path = os.path.expanduser(os.path.join(
-                '~', 'AppData', 'Local', 'Google', 'Chrome', 'User Data', 'Default'
-            ))
+            username = os.getenv('USERNAME')
+            default_path = rf'C:\Users\{username}\AppData\Local\Google\Chrome\User Data'
         elif system == 'Darwin':  # macOS
-            default_path = os.path.expanduser('~/Library/Application Support/Google/Chrome/Default')
-        else:  # Linux
-            default_path = os.path.expanduser('~/.config/google-chrome/Default')
+            default_path = os.path.expanduser('~/Library/Application Support/Google/Chrome/User Data')
+        elif system == 'Linux':
+            default_path = os.path.expanduser('~/.config/google-chrome')
+        else:
+            default_path = ''
         
         return default_path
 
@@ -77,6 +78,26 @@ class ImportTab(ctk.CTkFrame):
         content_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         content_frame.grid_columnconfigure(0, weight=1)
         
+        # OS Detection Info Frame
+        os_info_frame = ctk.CTkFrame(content_frame)
+        os_info_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 10))
+        
+        system = platform.system()
+        os_label = ctk.CTkLabel(
+            os_info_frame,
+            text=f"🖥️ Detected OS: {system}",
+            font=("Arial", 12, "bold")
+        )
+        os_label.pack(side="left", padx=10, pady=5)
+        
+        # Add current profile info
+        self.profile_info_label = ctk.CTkLabel(
+            os_info_frame,
+            text=f"📂 Active Profile: Default",
+            font=("Arial", 12, "bold")
+        )
+        self.profile_info_label.pack(side="right", padx=10, pady=5)
+        
         # Chrome Profile Section
         chrome_frame = ctk.CTkFrame(content_frame)
         chrome_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
@@ -96,6 +117,29 @@ class ImportTab(ctk.CTkFrame):
             width=400
         )
         self.chrome_path_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        
+        # Profile selection frame
+        profile_frame = ctk.CTkFrame(chrome_frame)
+        profile_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+        
+        profile_label = ctk.CTkLabel(
+            profile_frame,
+            text="Chrome Profile:",
+            font=("Arial", 12, "bold")
+        )
+        profile_label.pack(side="left", padx=5)
+        
+        system = platform.system()
+        profiles = list(Config.CHROME_PROFILES.get(system, {}).keys())
+        
+        self.profile_var = ctk.StringVar(value="Default")
+        profile_dropdown = ctk.CTkOptionMenu(
+            profile_frame,
+            values=profiles,
+            variable=self.profile_var,
+            command=self.update_chrome_path
+        )
+        profile_dropdown.pack(side="left", padx=5)
         
         save_path_button = ctk.CTkButton(
             chrome_frame,
@@ -394,4 +438,20 @@ class ImportTab(ctk.CTkFrame):
             try:
                 self.scraper.cleanup()
             except Exception:
-                pass 
+                pass
+
+    def update_chrome_path(self, profile_name):
+        """Update Chrome path when profile is selected"""
+        system = platform.system()
+        if system in Config.CHROME_PROFILES:
+            if system == 'Windows':
+                username = os.getenv('USERNAME')
+                base_path = Config.CHROME_PROFILES[system][profile_name].format(username=username)
+            else:
+                base_path = os.path.expanduser(Config.CHROME_PROFILES[system][profile_name])
+            
+            self.chrome_path_var.set(base_path)
+            self.profile_info_label.configure(text=f"📂 Active Profile: {profile_name}")
+            self.status_text.insert("1.0", f"Updated Chrome profile path for {profile_name}\n")
+        else:
+            self.status_text.insert("1.0", f"Warning: Unsupported OS detected: {system}\n") 
