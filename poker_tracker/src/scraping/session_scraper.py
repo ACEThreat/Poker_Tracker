@@ -12,6 +12,7 @@ from tkinter import scrolledtext, messagebox
 from ..scraping.session_parser import SessionParser
 from ..database.session_importer import SessionImporter
 import re
+from ..config import Config
 
 class SessionScraper:
     def __init__(self):
@@ -39,18 +40,25 @@ class SessionScraper:
         )
         self.logger = logging.getLogger('SessionScraper')
 
-    def initialize_driver(self):
-        """Initialize Chrome driver with default profile"""
+    def initialize_driver(self, chrome_profile=None):
+        """Initialize Chrome driver with specified profile"""
         options = webdriver.ChromeOptions()
-        options.add_argument('--user-data-dir=/Users/shane/Library/Application Support/Google/Chrome')
+        
+        # Use provided chrome profile or get from config
+        profile_path = chrome_profile if chrome_profile else Config.get_chrome_profile()
+        options.add_argument(f'--user-data-dir={profile_path}')
         options.add_argument('--profile-directory=Default')
         options.add_argument('--start-maximized')
         
-        self.driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()),
-            options=options
-        )
-        return True
+        try:
+            self.driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()),
+                options=options
+            )
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to initialize driver: {str(e)}")
+            return False
 
     def navigate_to_url(self, url):
         """Navigate to the specified URL"""
@@ -123,7 +131,15 @@ class SessionScraper:
                 
                 # Parse and show formatted content
                 formatted_content, parsed_sessions = parse_and_format_content(content)
+                
+                # Add warning text at the top
+                warning_text = "⚠️ WARNING: You must be logged into the poker site in Google Chrome before proceeding! ⚠️\n\n"
+                text_area.insert(tk.END, warning_text)
                 text_area.insert(tk.END, formatted_content)
+                
+                # Tag the warning text to make it bold
+                text_area.tag_add("bold", "1.0", "2.0")
+                text_area.tag_config("bold", font=("TkDefaultFont", 10, "bold"))
                 
                 # Button functions
                 def verify():
@@ -166,7 +182,7 @@ class SessionScraper:
                 button_frame.pack(pady=10)
                 
                 # Add buttons
-                tk.Button(button_frame, text="Verify & Import", command=verify).pack(side=tk.LEFT, padx=5)
+                tk.Button(button_frame, text="Continue after session history loaded", command=verify).pack(side=tk.LEFT, padx=5)
                 tk.Button(button_frame, text="New Scrape", command=new_scrape).pack(side=tk.LEFT, padx=5)
                 tk.Button(button_frame, text="Retry Current", command=retry).pack(side=tk.LEFT, padx=5)
                 tk.Button(button_frame, text="Close Browser", command=close_browser).pack(side=tk.LEFT, padx=5)

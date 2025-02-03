@@ -106,7 +106,7 @@ class BankrollOverviewTab(ctk.CTkFrame):
         
         self.total_bankroll = ctk.CTkLabel(
             bankroll_frame,
-            text="Current Bankroll\n$1,573.30",
+            text="Current Bankroll\n-",
             font=("Arial", 16, "bold")
         )
         self.total_bankroll.grid(row=0, column=0, padx=10, pady=5)

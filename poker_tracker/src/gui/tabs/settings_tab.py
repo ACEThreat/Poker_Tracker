@@ -181,8 +181,12 @@ class SettingsTab(ctk.CTkFrame):
             session.commit()
             session.close()
             messagebox.showinfo("Success", "All sessions deleted successfully")
-            # Update sessions tab through the main window's tabs dictionary
-            self.master.tabs["Sessions"].fetch_sessions()
+            
+            # Get main window and refresh sessions if possible
+            main_window = self.winfo_toplevel()
+            if hasattr(main_window, 'tabs') and "Sessions" in main_window.tabs:
+                main_window.tabs["Sessions"].fetch_sessions()
+            
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete sessions: {str(e)}")
             

@@ -1,13 +1,143 @@
 import os
 from pathlib import Path
+import json
+import platform
+from tkinter import messagebox, Tk, simpledialog
+import time
 
 class Config:
     APP_DIR = os.path.expanduser('~/.poker_tracker')
     DB_NAME = 'database.db'
     LOG_DIR = os.path.join(APP_DIR, 'logs')
     IMPORT_DIR = os.path.join(APP_DIR, 'DB_Import_Files')
-    CHROME_PROFILE = '/Users/shane/Library/Application Support/Google/Chrome'
     BACKUP_DIR = os.path.join(APP_DIR, 'backups')
+    CONFIG_FILE = os.path.join(APP_DIR, 'config.json')
+    
+    # Default Chrome profile paths by OS
+    DEFAULT_CHROME_PATHS = {
+        'Darwin': '~/Library/Application Support/Google/Chrome',  # macOS
+        'Windows': '~/AppData/Local/Google/Chrome/User Data',     # Windows
+        'Linux': '~/.config/google-chrome'                        # Linux
+    }
+    
+    @classmethod
+    def get_chrome_profile(cls):
+        """Get Chrome profile path, prompting user on first run"""
+        # Check if we have a stored config
+        if os.path.exists(cls.CONFIG_FILE):
+            try:
+                with open(cls.CONFIG_FILE, 'r') as f:
+                    config = json.load(f)
+                    if 'chrome_profile' in config:
+                        return config['chrome_profile']
+            except Exception as e:
+                print(f"Error reading config file: {e}")
+        
+        # Get default path for current OS
+        system = platform.system()
+        default_path = os.path.expanduser(cls.DEFAULT_CHROME_PATHS.get(system, ''))
+        
+        # Prepare OS-specific instructions
+        instructions = {
+            'Darwin': """
+Please enter your Chrome profile path.
+Default location on macOS:
+~/Library/Application Support/Google/Chrome
+
+To find your profile:
+1. Open Chrome
+2. Go to chrome://version
+3. Look for 'Profile Path'
+""",
+            'Windows': """
+Please enter your Chrome profile path.
+Default location on Windows:
+%LOCALAPPDATA%\\Google\\Chrome\\User Data
+
+To find your profile:
+1. Open Chrome
+2. Go to chrome://version
+3. Look for 'Profile Path'
+""",
+            'Linux': """
+Please enter your Chrome profile path.
+Default location on Linux:
+~/.config/google-chrome
+
+To find your profile:
+1. Open Chrome
+2. Go to chrome://version
+3. Look for 'Profile Path'
+"""
+        }
+
+        chrome_path = None
+        root = None
+        
+        try:
+            root = Tk()
+            root.withdraw()  # Hide the main window
+            
+            # Make sure the window is ready
+            root.update()
+            
+            # Show instructions and get path from user
+            chrome_path = simpledialog.askstring(
+                "Chrome Profile Path",
+                instructions.get(system, "Please enter your Chrome profile path:"),
+                initialvalue=default_path,
+                parent=root
+            )
+            
+            # Give the dialog time to complete
+            time.sleep(0.1)
+            root.update()
+            
+        except Exception as e:
+            print(f"Error showing dialog: {e}")
+        finally:
+            if root:
+                try:
+                    root.destroy()
+                except Exception:
+                    pass
+
+        if not chrome_path:
+            messagebox.showerror(
+                "Error",
+                "Chrome profile path is required for session importing. "
+                "Please restart the application and provide a valid path."
+            )
+            raise SystemExit(1)
+        
+        # Expand user path if necessary
+        chrome_path = os.path.expanduser(chrome_path)
+        
+        # Verify path exists
+        if not os.path.exists(chrome_path):
+            messagebox.showerror(
+                "Error",
+                f"The specified path does not exist:\n{chrome_path}\n\n"
+                "Please restart the application and provide a valid path."
+            )
+            raise SystemExit(1)
+        
+        # Save the config
+        cls.ensure_directories()
+        try:
+            config = {}
+            if os.path.exists(cls.CONFIG_FILE):
+                with open(cls.CONFIG_FILE, 'r') as f:
+                    config = json.load(f)
+            
+            config['chrome_profile'] = chrome_path
+            
+            with open(cls.CONFIG_FILE, 'w') as f:
+                json.dump(config, f, indent=4)
+        except Exception as e:
+            print(f"Error saving config file: {e}")
+        
+        return chrome_path
     
     @classmethod
     def ensure_directories(cls):
