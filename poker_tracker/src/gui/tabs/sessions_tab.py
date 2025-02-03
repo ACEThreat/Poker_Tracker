@@ -317,30 +317,44 @@ class SessionsTab(ctk.CTkFrame):
         self.clear_table()
         
         for row_idx, s in enumerate(sessions, start=1):
-            # Calculate stats
-            duration_hours = self.parse_duration(s.duration)
-            bb_size = float(s.stakes.split('/')[1].strip().split()[0])
-            bb_per_100 = (s.result / bb_size * 100) / s.hands_played if s.hands_played > 0 else 0
-            hourly_rate = s.result / duration_hours if duration_hours > 0 else 0
-            
-            cells = [
-                s.start_time.strftime("%Y-%m-%d %H:%M"),
-                s.stakes,
-                s.game_format,
-                s.duration,
-                str(s.hands_played),
-                f"${s.result:.2f}",
-                f"{bb_per_100:.2f}",
-                f"${hourly_rate:.2f}"
-            ]
-            
-            for col, value in enumerate(cells):
-                ctk.CTkLabel(
-                    self.table_container,  # Changed from self.table_frame
-                    text=str(value),
-                    font=("Arial", 12),
-                    anchor="center"
-                ).grid(row=row_idx, column=col, padx=5, pady=4, sticky="ew")
+            try:
+                # Calculate stats
+                duration_hours = self.parse_duration(s.duration)
+                
+                # Safer BB size extraction
+                bb_size = 1  # Default value
+                try:
+                    stakes_parts = s.stakes.split('/')
+                    if len(stakes_parts) >= 2:
+                        bb_str = ''.join(c for c in stakes_parts[1] if c.isdigit() or c == '.')
+                        bb_size = float(bb_str) if bb_str else 1
+                except (ValueError, IndexError, AttributeError):
+                    bb_size = 1
+                
+                bb_per_100 = (s.result / bb_size * 100) / s.hands_played if s.hands_played > 0 else 0
+                hourly_rate = s.result / duration_hours if duration_hours > 0 else 0
+                
+                cells = [
+                    s.start_time.strftime("%Y-%m-%d %H:%M"),
+                    s.stakes,
+                    s.game_format,
+                    s.duration,
+                    str(s.hands_played),
+                    f"${s.result:.2f}",
+                    f"{bb_per_100:.2f}",
+                    f"${hourly_rate:.2f}"
+                ]
+                
+                for col, value in enumerate(cells):
+                    ctk.CTkLabel(
+                        self.table_container,
+                        text=str(value),
+                        font=("Arial", 12),
+                        anchor="center"
+                    ).grid(row=row_idx, column=col, padx=5, pady=4, sticky="ew")
+            except Exception as e:
+                print(f"Error processing row {row_idx}: {e}")
+                continue
 
     def clear_table(self):
         """Clear all rows except headers"""
