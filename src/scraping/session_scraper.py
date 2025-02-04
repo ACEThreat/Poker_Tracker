@@ -14,6 +14,7 @@ from ..database.session_importer import SessionImporter
 import re
 from ..config import Config
 import platform
+import subprocess
 
 class SessionScraper:
     def __init__(self):
@@ -48,48 +49,82 @@ class SessionScraper:
 
     def initialize_driver(self, chrome_profile=None):
         """Initialize Chrome driver with default profile"""
-        options = webdriver.ChromeOptions()
-        
-        # Get system-specific default Chrome path
-        system = platform.system()
-        if system == 'Darwin':  # macOS
-            user_data_dir = os.path.expanduser('~/Library/Application Support/Google/Chrome')
-        elif system == 'Windows':
-            username = os.getenv('USERNAME')
-            user_data_dir = rf'C:\Users\{username}\AppData\Local\Google\Chrome\User Data'
-        elif system == 'Linux':
-            user_data_dir = os.path.expanduser('~/.config/google-chrome')
-        else:
-            error_msg = f"Unsupported operating system: {system}"
-            self.logger.error(error_msg)
-            if self.status_callback:
-                self.status_callback(error_msg + "\n")
-            return False
-        
-        # Log the exact path being used
-        status_msg = f"Operating System: {system}\nChrome Profile Path: {user_data_dir}"
-        self.logger.info(status_msg)
-        if self.status_callback:
-            self.status_callback(status_msg + "\n")
-        
-        # Add only the essential options
-        options.add_argument(f'--user-data-dir={user_data_dir}')
-        options.add_argument('--profile-directory=Default')
-        options.add_argument('--start-maximized')
-        
         try:
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=options)
+            self.logger.info("Starting driver initialization...")
+            if self.status_callback:
+                self.status_callback("Starting driver initialization...\n")
+            
+            # Force kill ALL chrome and chromedriver processes
+            subprocess.run(['pkill', '-9', 'Google Chrome'], capture_output=True)
+            subprocess.run(['pkill', '-9', 'chromedriver'], capture_output=True)
+            time.sleep(1)  # Give processes time to fully terminate
+            
+            options = webdriver.ChromeOptions()
+            
+            # Get system-specific default Chrome path
+            system = platform.system()
+            if system == 'Darwin':  # macOS
+                user_data_dir = os.path.expanduser('~/Library/Application Support/Google/Chrome')
+            elif system == 'Windows':
+                username = os.getenv('USERNAME')
+                user_data_dir = rf'C:\Users\{username}\AppData\Local\Google\Chrome\User Data'
+            elif system == 'Linux':
+                user_data_dir = os.path.expanduser('~/.config/google-chrome')
+            else:
+                error_msg = f"Unsupported operating system: {system}"
+                self.logger.error(error_msg)
+                if self.status_callback:
+                    self.status_callback(error_msg + "\n")
+                return False
+            
+            # Add essential options
+            options.add_argument(f'--user-data-dir={user_data_dir}')
+            options.add_argument('--profile-directory=Default')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            
+            self.logger.info("Creating Chrome driver...")
+            if self.status_callback:
+                self.status_callback("Creating Chrome driver...\n")
+            
+            # Clean up and recreate ChromeDriver
+            driver_cache = os.path.expanduser('~/.wdm/drivers/chromedriver')
+            if os.path.exists(driver_cache):
+                import shutil
+                shutil.rmtree(driver_cache)
+            
+            driver_path = ChromeDriverManager().install()
+            os.chmod(driver_path, 0o755)
+            
+            service = Service(
+                executable_path=driver_path
+            )
+            
+            self.logger.info("Initializing WebDriver...")
+            if self.status_callback:
+                self.status_callback("Initializing WebDriver...\n")
+            
+            self.driver = webdriver.Chrome(
+                service=service,
+                options=options
+            )
+            
             success_msg = "Chrome driver initialized successfully"
             self.logger.info(success_msg)
             if self.status_callback:
                 self.status_callback(success_msg + "\n")
             return True
+            
         except Exception as e:
             error_msg = f"Failed to initialize driver: {str(e)}"
             self.logger.error(error_msg)
             if self.status_callback:
                 self.status_callback(error_msg + "\n")
+            if hasattr(self, 'driver'):
+                try:
+                    self.driver.quit()
+                except:
+                    pass
             return False
 
     def navigate_to_url(self, url):
