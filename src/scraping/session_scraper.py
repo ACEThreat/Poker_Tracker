@@ -13,12 +13,14 @@ from ..scraping.session_parser import SessionParser
 from ..database.session_importer import SessionImporter
 import re
 from ..config import Config
+import platform
 
 class SessionScraper:
     def __init__(self):
         self.driver = None
         self.page_text = None
         self.verification_result = False
+        self.status_callback = None
         self.setup_logging()
         
     def setup_logging(self):
@@ -40,24 +42,54 @@ class SessionScraper:
         )
         self.logger = logging.getLogger('SessionScraper')
 
+    def set_status_callback(self, callback):
+        """Set callback function for status updates"""
+        self.status_callback = callback
+
     def initialize_driver(self, chrome_profile=None):
-        """Initialize Chrome driver with specified profile"""
+        """Initialize Chrome driver with default profile"""
         options = webdriver.ChromeOptions()
         
-        # Use provided chrome profile or get from config
-        profile_path = chrome_profile if chrome_profile else Config.get_chrome_profile()
-        options.add_argument(f'--user-data-dir={profile_path}')
+        # Get system-specific default Chrome path
+        system = platform.system()
+        if system == 'Darwin':  # macOS
+            user_data_dir = os.path.expanduser('~/Library/Application Support/Google/Chrome')
+        elif system == 'Windows':
+            username = os.getenv('USERNAME')
+            user_data_dir = rf'C:\Users\{username}\AppData\Local\Google\Chrome\User Data'
+        elif system == 'Linux':
+            user_data_dir = os.path.expanduser('~/.config/google-chrome')
+        else:
+            error_msg = f"Unsupported operating system: {system}"
+            self.logger.error(error_msg)
+            if self.status_callback:
+                self.status_callback(error_msg + "\n")
+            return False
+        
+        # Log the exact path being used
+        status_msg = f"Operating System: {system}\nChrome Profile Path: {user_data_dir}"
+        self.logger.info(status_msg)
+        if self.status_callback:
+            self.status_callback(status_msg + "\n")
+        
+        # Add only the essential options
+        options.add_argument(f'--user-data-dir={user_data_dir}')
         options.add_argument('--profile-directory=Default')
         options.add_argument('--start-maximized')
         
         try:
-            self.driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager().install()),
-                options=options
-            )
+            service = Service(ChromeDriverManager().install())
+            self.driver = webdriver.Chrome(service=service, options=options)
+            success_msg = "Chrome driver initialized successfully"
+            self.logger.info(success_msg)
+            if self.status_callback:
+                self.status_callback(success_msg + "\n")
             return True
         except Exception as e:
-            self.logger.error(f"Failed to initialize driver: {str(e)}")
+            error_msg = f"Failed to initialize driver: {str(e)}"
+            self.logger.error(error_msg)
+            if self.status_callback:
+                self.status_callback(error_msg + "\n")
             return False
 
     def navigate_to_url(self, url):
@@ -125,21 +157,22 @@ class SessionScraper:
                 popup.title("Scraped Content Verification")
                 popup.geometry("800x600")
                 
+                # Add warning text at the top
+                warning_label = tk.Label(
+                    popup,
+                    text="⚠️ WARNING: You must be logged into the poker site in Google Chrome before proceeding! ⚠️",
+                    font=("TkDefaultFont", 10, "bold"),
+                    wraplength=700
+                )
+                warning_label.pack(pady=(10,0))
+                
                 # Add scrollable text area
                 text_area = scrolledtext.ScrolledText(popup, width=80, height=30)
                 text_area.pack(padx=10, pady=10, expand=True, fill='both')
                 
                 # Parse and show formatted content
                 formatted_content, parsed_sessions = parse_and_format_content(content)
-                
-                # Add warning text at the top
-                warning_text = "⚠️ WARNING: You must be logged into the poker site in Google Chrome before proceeding! ⚠️\n\n"
-                text_area.insert(tk.END, warning_text)
                 text_area.insert(tk.END, formatted_content)
-                
-                # Tag the warning text to make it bold
-                text_area.tag_add("bold", "1.0", "2.0")
-                text_area.tag_config("bold", font=("TkDefaultFont", 10, "bold"))
                 
                 # Button functions
                 def verify():
@@ -150,6 +183,7 @@ class SessionScraper:
                             messagebox.showinfo("Success", f"Successfully imported {len(parsed_sessions)} sessions")
                             self.verification_result = True
                             self.page_text = content  # Save the raw content
+                            popup.destroy()
                         else:
                             messagebox.showerror("Import Error", f"Failed to import sessions: {message}")
                     except Exception as e:
@@ -181,7 +215,7 @@ class SessionScraper:
                 button_frame = tk.Frame(popup)
                 button_frame.pack(pady=10)
                 
-                # Add buttons
+                # Add buttons with updated text
                 tk.Button(button_frame, text="Continue after session history loaded", command=verify).pack(side=tk.LEFT, padx=5)
                 tk.Button(button_frame, text="New Scrape", command=new_scrape).pack(side=tk.LEFT, padx=5)
                 tk.Button(button_frame, text="Retry Current", command=retry).pack(side=tk.LEFT, padx=5)

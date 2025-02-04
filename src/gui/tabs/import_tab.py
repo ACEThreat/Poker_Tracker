@@ -23,56 +23,12 @@ class ImportTab(ctk.CTkFrame):
         self._is_running = True
         self.import_in_progress = False
         
-        # Load or create default Chrome profile path
-        self.chrome_profile = self.load_chrome_profile()
-        
         self.flash_count = 0
         self.flash_colors = ["#1f538d", "#2B93D1"]  # Dark blue to light blue
         
         # Create main content frame
         self.create_content_frame()
     
-    def load_chrome_profile(self):
-        """Load Chrome profile path from config or set default"""
-        if os.path.exists(Config.CONFIG_FILE):
-            try:
-                with open(Config.CONFIG_FILE, 'r') as f:
-                    config = json.load(f)
-                    if 'chrome_profile' in config:
-                        return config['chrome_profile']
-            except Exception as e:
-                print(f"Error reading config file: {e}")
-        
-        # Get default path based on OS
-        system = platform.system()
-        if system == 'Windows':
-            username = os.getenv('USERNAME')
-            default_path = rf'C:\Users\{username}\AppData\Local\Google\Chrome\User Data'
-        elif system == 'Darwin':  # macOS
-            default_path = os.path.expanduser('~/Library/Application Support/Google/Chrome/User Data')
-        elif system == 'Linux':
-            default_path = os.path.expanduser('~/.config/google-chrome')
-        else:
-            default_path = ''
-        
-        return default_path
-
-    def save_chrome_profile(self, path):
-        """Save Chrome profile path to config"""
-        Config.ensure_directories()
-        try:
-            config = {}
-            if os.path.exists(Config.CONFIG_FILE):
-                with open(Config.CONFIG_FILE, 'r') as f:
-                    config = json.load(f)
-            
-            config['chrome_profile'] = path
-            
-            with open(Config.CONFIG_FILE, 'w') as f:
-                json.dump(config, f, indent=4)
-        except Exception as e:
-            print(f"Error saving config file: {e}")
-
     def create_content_frame(self):
         content_frame = ctk.CTkFrame(self)
         content_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
@@ -80,7 +36,7 @@ class ImportTab(ctk.CTkFrame):
         
         # OS Detection Info Frame
         os_info_frame = ctk.CTkFrame(content_frame)
-        os_info_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 10))
+        os_info_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(0, 10))
         
         system = platform.system()
         os_label = ctk.CTkLabel(
@@ -97,57 +53,6 @@ class ImportTab(ctk.CTkFrame):
             font=("Arial", 12, "bold")
         )
         self.profile_info_label.pack(side="right", padx=10, pady=5)
-        
-        # Chrome Profile Section
-        chrome_frame = ctk.CTkFrame(content_frame)
-        chrome_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        chrome_frame.grid_columnconfigure(1, weight=1)
-        
-        chrome_label = ctk.CTkLabel(
-            chrome_frame, 
-            text="Chrome Profile Path:", 
-            font=("Arial", 12, "bold")
-        )
-        chrome_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        
-        self.chrome_path_var = ctk.StringVar(value=self.chrome_profile)
-        self.chrome_path_entry = ctk.CTkEntry(
-            chrome_frame,
-            textvariable=self.chrome_path_var,
-            width=400
-        )
-        self.chrome_path_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-        
-        # Profile selection frame
-        profile_frame = ctk.CTkFrame(chrome_frame)
-        profile_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
-        
-        profile_label = ctk.CTkLabel(
-            profile_frame,
-            text="Chrome Profile:",
-            font=("Arial", 12, "bold")
-        )
-        profile_label.pack(side="left", padx=5)
-        
-        system = platform.system()
-        profiles = list(Config.CHROME_PROFILES.get(system, {}).keys())
-        
-        self.profile_var = ctk.StringVar(value="Default")
-        profile_dropdown = ctk.CTkOptionMenu(
-            profile_frame,
-            values=profiles,
-            variable=self.profile_var,
-            command=self.update_chrome_path
-        )
-        profile_dropdown.pack(side="left", padx=5)
-        
-        save_path_button = ctk.CTkButton(
-            chrome_frame,
-            text="Save Path",
-            command=self.save_path,
-            width=100
-        )
-        save_path_button.grid(row=0, column=2, padx=5, pady=5)
         
         # Web Import Section
         web_frame = ctk.CTkFrame(content_frame)
@@ -217,8 +122,7 @@ class ImportTab(ctk.CTkFrame):
         
         # File Import Section
         file_frame = ctk.CTkFrame(content_frame)
-        file_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=5)
-        file_frame.grid_columnconfigure(0, weight=1)
+        file_frame.grid(row=6, column=0, sticky="ew", padx=5, pady=5)
         
         file_label = ctk.CTkLabel(file_frame, text="Import from File:", font=("Arial", 12, "bold"))
         file_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
@@ -231,37 +135,33 @@ class ImportTab(ctk.CTkFrame):
         )
         self.file_button.grid(row=1, column=0, padx=5, pady=20)
         
-        # Status text
-        self.status_text = ctk.CTkTextbox(content_frame, height=200)
-        self.status_text.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
-        
-        # Initially hidden buttons
+        # Initially hidden buttons - place them before the status text
         self.continue_button = ctk.CTkButton(
-            content_frame,
-            text="Continue after session history loaded",  # Updated button text
+            web_frame,  # Changed from content_frame to web_frame
+            text="Continue after session history loaded",
             command=self.continue_after_login,
             width=300,
             height=50,
             font=("Arial", 16, "bold"),
-            fg_color=self.flash_colors[0],
-            hover_color="#1D4B7E"
+            fg_color="#1f538d"  # Added distinctive color
         )
+        self.continue_button.grid(row=5, column=0, padx=5, pady=10, sticky="ew")
+        self.continue_button.grid_remove()  # Hide initially
         
+        # Status text - moved after the continue button
+        self.status_text = ctk.CTkTextbox(content_frame, height=200)
+        self.status_text.grid(row=7, column=0, padx=5, pady=5, sticky="ew")
+        
+        # Save & Close button
         self.save_close_button = ctk.CTkButton(
-            content_frame,
+            web_frame,  # Changed from content_frame to web_frame
             text="Save & Close",
-            command=self.save_and_close
+            command=self.save_and_close,
+            width=300,
+            font=("Arial", 14, "bold")
         )
-
-    def save_path(self):
-        """Save the Chrome profile path"""
-        path = self.chrome_path_var.get()
-        if os.path.exists(os.path.dirname(path)):
-            self.save_chrome_profile(path)
-            self.chrome_profile = path
-            self.status_text.insert("1.0", "Chrome profile path saved successfully\n")
-        else:
-            self.status_text.insert("1.0", "Error: Invalid path. Please enter a valid Chrome profile path\n")
+        self.save_close_button.grid(row=8, column=0, padx=5, pady=5, sticky="ew")
+        self.save_close_button.grid_remove()  # Hide initially
 
     def select_file(self):
         """Handle file selection and parsing"""
@@ -313,20 +213,25 @@ class ImportTab(ctk.CTkFrame):
         self.status_text.insert("1.0", "Starting import process...\n")
         self.import_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
-        self.import_in_progress = True
+        
+        def status_callback(message):
+            self.status_text.insert("1.0", message)
         
         def import_thread():
             try:
-                if not self.import_in_progress:
-                    return
-                
-                if self.scraper.initialize_driver(chrome_profile=self.chrome_path_var.get()):
+                self.scraper.set_status_callback(status_callback)
+                if self.scraper.initialize_driver():
                     self.status_text.insert("1.0", "Browser initialized...\n")
-                    if self.import_in_progress and self.scraper.navigate_to_url(url):
+                    if self.scraper.navigate_to_url(url):
                         self.status_text.insert("1.0", "Navigation successful...\n")
-                        self.continue_button.grid(row=4, column=0, padx=5, pady=5)
-                        # Start the flashing effect
-                        self.after(0, self.start_flash_effect)
+                        self.continue_button.grid()
+                        self.continue_button.lift()
+                    else:
+                        self.status_text.insert("1.0", "Failed to navigate to URL\n")
+                        self.reset_import_state()
+                else:
+                    self.status_text.insert("1.0", "Failed to initialize browser\n")
+                    self.reset_import_state()
             except Exception as e:
                 self.status_text.insert("1.0", f"Error: {str(e)}\n")
                 self.reset_import_state()
@@ -376,21 +281,15 @@ class ImportTab(ctk.CTkFrame):
                 if hasattr(self, '_is_running') and not self._is_running:
                     return
                 self.status_text.insert("1.0", "Content extracted successfully...\n")
-                self.save_close_button.grid(row=4, column=0, padx=5, pady=5)
+                self.save_close_button.grid(row=8, column=0, padx=5, pady=5, sticky="ew")
             else:
                 if hasattr(self, '_is_running') and not self._is_running:
                     return
                 self.status_text.insert("1.0", "Failed to extract content\n")
+                self.import_button.configure(state="normal")
         except Exception as e:
-            print(f"Error in continue_after_login: {str(e)}")
-        finally:
-            # Only try to update GUI if application is still running
-            try:
-                if hasattr(self, '_is_running') and self._is_running:
-                    if hasattr(self, 'import_button'):
-                        self.import_button.configure(state="normal")
-            except Exception:
-                pass
+            self.status_text.insert("1.0", f"Error in continue_after_login: {str(e)}\n")
+            self.import_button.configure(state="normal")
     
     def save_and_close(self):
         """Save content, parse sessions, import to database, and cleanup"""
@@ -454,4 +353,23 @@ class ImportTab(ctk.CTkFrame):
             self.profile_info_label.configure(text=f"📂 Active Profile: {profile_name}")
             self.status_text.insert("1.0", f"Updated Chrome profile path for {profile_name}\n")
         else:
-            self.status_text.insert("1.0", f"Warning: Unsupported OS detected: {system}\n") 
+            self.status_text.insert("1.0", f"Warning: Unsupported OS detected: {system}\n")
+
+    def on_os_change(self, selected_os):
+        """Handle OS selection change"""
+        try:
+            # Update profiles dropdown
+            profiles = list(Config.CHROME_PROFILES.get(selected_os, {}).keys())
+            self.profile_var.set("Default")
+            
+            # Update chrome path based on new OS
+            if selected_os == 'Windows':
+                username = os.getenv('USERNAME')
+                default_path = Config.CHROME_PROFILES[selected_os]["Default"].format(username=username)
+            else:
+                default_path = os.path.expanduser(Config.CHROME_PROFILES[selected_os]["Default"])
+            
+            self.chrome_path_var.set(default_path)
+            self.status_text.insert("1.0", f"Updated to {selected_os} default Chrome path\n")
+        except Exception as e:
+            self.status_text.insert("1.0", f"Error updating OS settings: {str(e)}\n") 

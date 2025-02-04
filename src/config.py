@@ -16,11 +16,11 @@ class Config:
     # Default Chrome profile paths by OS
     DEFAULT_CHROME_PATHS = {
         'Windows': r'C:\Users\{username}\AppData\Local\Google\Chrome\User Data',
-        'Darwin': '~/Library/Application Support/Google/Chrome/User Data',  # Updated macOS path
+        'Darwin': '~/Library/Application Support/Google/Chrome/User Data',
         'Linux': '~/.config/google-chrome'
     }
     
-    # Add to existing DEFAULT_CHROME_PATHS
+    # Chrome profiles with correct macOS paths
     CHROME_PROFILES = {
         'Windows': {
             'Default': r'C:\Users\{username}\AppData\Local\Google\Chrome\User Data',
